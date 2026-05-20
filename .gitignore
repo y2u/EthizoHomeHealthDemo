@@ -1,7 +1,9 @@
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
 backend/vendor/
 backend/tmp/
 backend/logs/
+backend/.phpunit.cache/
 backend/config/app_local.php
 .DS_Store
