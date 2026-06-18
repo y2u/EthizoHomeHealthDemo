@@ -554,7 +554,7 @@ function ownersForBillingBlockers(blockers: string[]) {
   return Array.from(owners)
 }
 
-function evaluateDemoBillingReadiness(claim: Claim, dataset: AppDataset) {
+export function evaluateDemoBillingReadiness(claim: Claim, dataset: AppDataset) {
   const episode = dataset.episodes.find((item) => item.id === claim.episode_id)
   const assessment = dataset.assessments
     .filter((item) => item.episode_id === claim.episode_id && ['final', 'locked'].includes(item.status))

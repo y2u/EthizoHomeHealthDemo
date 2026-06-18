@@ -45,6 +45,7 @@ import {
   buildVisitRecommendations,
   buildWeekOneFrequencyPlan,
   computeDemoReadiness,
+  evaluateDemoBillingReadiness,
   normalizeDemoReferralOrderStatus,
   normalizeOrderStatus,
   type BillingFollowUpItem,
@@ -10205,70 +10206,6 @@ function mapPdgmAdmissionSource(admissionSource?: string) {
     : 'COMMUNITY'
 }
 
-function evaluateDemoBillingReadiness(claim: Claim, dataset: AppDataset) {
-  const episode = dataset.episodes.find((item) => item.id === claim.episode_id)
-  const assessment = dataset.assessments
-    .filter((item) => item.episode_id === claim.episode_id && ['final', 'locked'].includes(item.status))
-    .sort((left, right) => right.completed_at.localeCompare(left.completed_at))[0]
-  const snapshot =
-    normalizeAdmissionSnapshot(episode?.admission_readiness_snapshot) ?? deriveAdmissionSnapshot(episode, dataset.referrals)
-  const blockers: string[] = []
-
-  if (!episode || episode.episode_status !== 'active') {
-    blockers.push('Episode must be active before final billing submission.')
-  }
-  if (!assessment) {
-    blockers.push('Billing requires a finalized OASIS assessment.')
-  }
-  blockers.push(...assessmentBillingBlockers(assessment))
-
-  const expectedDiagnosis = extractDiagnosisCode(episode?.primary_diagnosis ?? '')
-  const assessmentDiagnosis = assessment?.principal_diagnosis_code?.trim().toUpperCase() ?? ''
-  if (assessmentDiagnosis === '' || !isValidDiagnosisCode(assessmentDiagnosis)) {
-    blockers.push('Billing requires a valid ICD-10 principal diagnosis code on the finalized assessment.')
-  }
-  if (expectedDiagnosis && assessmentDiagnosis && expectedDiagnosis !== assessmentDiagnosis) {
-    blockers.push(`Assessment diagnosis ${assessmentDiagnosis} does not match the episode primary diagnosis ${expectedDiagnosis}.`)
-  }
-  if (!snapshot?.admission_source) {
-    blockers.push('Billing requires an admission source on the episode intake snapshot.')
-  }
-  if (!snapshot?.face_to_face_date) {
-    blockers.push('Billing requires face-to-face documentation on the episode intake snapshot.')
-  }
-  if (!snapshot?.physician_orders_signed || !snapshot?.physician_orders_signed_at) {
-    blockers.push('Billing requires signed physician orders on the episode intake snapshot.')
-  }
-  const unsignedActiveOrders = dataset.physicianOrders.filter(
-    (order) =>
-      order.episode_id === claim.episode_id &&
-      order.active &&
-      ['admission', 'plan_of_care', 'recertification', 'resume_of_care'].includes(order.order_scope) &&
-      (order.order_status !== 'signed' || !order.signed_at),
-  ).length
-  if (unsignedActiveOrders > 0) {
-    blockers.push('Billing requires all active physician order packets to be signed.')
-  }
-  if (!episode?.pdgm_group_code) {
-    blockers.push('Billing requires PDGM grouping before claim submission.')
-  }
-  const completedVisitsPendingLock = dataset.visits.filter(
-    (visit) =>
-      visit.episode_id === claim.episode_id &&
-      ['completed', 'locked'].includes(visit.status) &&
-      visit.documentation_status !== 'locked',
-  ).length
-  if (completedVisitsPendingLock > 0) {
-    blockers.push('Billing requires all completed visit documentation to be QA-locked before submission.')
-  }
-
-  return {
-    ready_to_bill: blockers.length === 0,
-    primary_blocker: blockers[0] ?? 'Billing is ready.',
-    blockers,
-  }
-}
-
 function availableClaimActions(claim: Claim) {
   if (claim.status === 'submitted') {
     return ['accept', 'reject', 'void'] as const
@@ -10302,10 +10239,6 @@ function labelizeClaimAction(action: 'accept' | 'reject' | 'post_payment' | 'voi
 function extractDiagnosisCode(diagnosis: string) {
   const match = diagnosis.trim().match(/^([A-TV-Z][0-9][0-9A-Z](?:\.[0-9A-Z]{1,4})?)/i)
   return match ? match[1].toUpperCase() : ''
-}
-
-function isValidDiagnosisCode(code: string) {
-  return /^[A-TV-Z][0-9][0-9A-Z](?:\.[0-9A-Z]{1,4})?$/.test(code)
 }
 
 function normalizeDisciplines(value?: string[] | string) {
@@ -10349,22 +10282,6 @@ function assessmentActivationBlockers(assessment?: Assessment) {
     !assessment.medication_reconciliation_completed
   ) {
     blockers.push('Episode cannot activate until medication reconciliation is documented on the finalized assessment.')
-  }
-
-  return blockers
-}
-
-function assessmentBillingBlockers(assessment?: Assessment) {
-  if (!assessment) {
-    return []
-  }
-
-  const blockers = [...assessmentActivationBlockers(assessment)]
-  if (!assessment.clinical_summary?.trim()) {
-    blockers.push('Billing requires a clinical summary on the finalized assessment.')
-  }
-  if (!assessment.care_plan_goals?.trim()) {
-    blockers.push('Billing requires documented care plan goals on the finalized assessment.')
   }
 
   return blockers

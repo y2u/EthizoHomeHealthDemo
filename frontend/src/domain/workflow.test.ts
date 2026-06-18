@@ -5,6 +5,7 @@ import {
   buildDemoEpisodeReviewSummary,
   buildEvvQueueSections,
   computeDemoReadiness,
+  evaluateDemoBillingReadiness,
 } from './workflow'
 
 describe('computeDemoReadiness', () => {
@@ -32,6 +33,19 @@ describe('buildClaimReadinessQueue', () => {
 
     expect(item.patientName).toContain('Eleanor')
     expect(item.claim.claim_type).toBeTruthy()
+  })
+})
+
+describe('evaluateDemoBillingReadiness', () => {
+  it('blocks claim submission when verbal orders are unsigned', () => {
+    const dataset = createDemoDataset()
+    const claim = dataset.claims.find((item) => item.episode_id === 1)
+    expect(claim).toBeDefined()
+
+    const readiness = evaluateDemoBillingReadiness(claim!, dataset)
+
+    expect(readiness.ready_to_bill).toBe(false)
+    expect(readiness.blockers.join(' ')).toContain('verbal orders')
   })
 })
 
