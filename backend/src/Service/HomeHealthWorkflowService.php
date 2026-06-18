@@ -605,6 +605,10 @@ class HomeHealthWorkflowService
         if ($this->hasUnsignedActiveOrders($episodeId, ['admission'])) {
             $blockers[] = 'Episode cannot activate until the active admission physician order packet is signed.';
         }
+        $complianceBlockers = (new HomeHealthComplianceService())->activationBlockers($episodeId);
+        foreach ($complianceBlockers as $complianceBlocker) {
+            $blockers[] = $complianceBlocker;
+        }
         if ($openQaTasks > 0) {
             $blockers[] = sprintf('%d open QA task(s) still need review.', $openQaTasks);
         }
@@ -620,7 +624,8 @@ class HomeHealthWorkflowService
             && $this->activationAssessmentBlockers($assessment) === []
             && $this->hasFaceToFaceDocumentation($snapshot)
             && $this->hasSignedPhysicianOrders($snapshot)
-            && !$this->hasUnsignedActiveOrders($episodeId, ['admission']);
+            && !$this->hasUnsignedActiveOrders($episodeId, ['admission'])
+            && $complianceBlockers === [];
 
         return [
             'episode_id' => $episodeId,
@@ -693,6 +698,9 @@ class HomeHealthWorkflowService
             ->count();
         if ($unlockedCompletedVisitCount > 0) {
             $blockers[] = 'Billing requires all completed visit documentation to be QA-locked before submission.';
+        }
+        foreach ((new HomeHealthComplianceService())->billingBlockers($episodeId) as $complianceBlocker) {
+            $blockers[] = $complianceBlocker;
         }
 
         return [

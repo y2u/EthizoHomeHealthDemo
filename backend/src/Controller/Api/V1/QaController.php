@@ -27,6 +27,7 @@ class QaController extends ApiController
         $task = $tasks->get($id);
         $task = $tasks->patchEntity($task, [
             'status' => 'resolved',
+            'resolved_at' => date('Y-m-d H:i:s'),
         ]);
         $tasks->saveOrFail($task);
         $episodeId = $task->get('episode_id');

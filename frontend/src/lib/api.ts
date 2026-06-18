@@ -1,4 +1,45 @@
-import type { AppUser, Assessment, AuditEvent, Claim, Episode, EpisodeReadiness, EpisodeReviewSummary, EvvRecord, Patient, PhysicianOrder, QaTask, Referral, ReferralDocument, SecuritySettings, SessionActivity, User, Visit } from './types'
+import type {
+  AppUser,
+  Assessment,
+  AideSupervisionEvent,
+  AuditEvent,
+  CaseConference,
+  Claim,
+  ClaimTransaction,
+  CoderReviewItem,
+  CommunicationLogEntry,
+  DmeSupplyOrder,
+  EligibilityCheck,
+  Episode,
+  EpisodeInsightSummary,
+  EpisodeReadiness,
+  EpisodeReviewSummary,
+  EvvRecord,
+  FaxMessage,
+  IncidentReport,
+  InfectionLog,
+  OasisSubmission,
+  Patient,
+  PatientAllergy,
+  PatientComplianceDocument,
+  PatientMedication,
+  PatientNotice,
+  PayerAuthorization,
+  PhysicianOrder,
+  PlanOfCare,
+  QaTask,
+  QapiProject,
+  QualityMetricsSummary,
+  Referral,
+  ReferralDocument,
+  RemittancePosting,
+  SecuritySettings,
+  SessionActivity,
+  SurveyReadinessSummary,
+  User,
+  VerbalOrder,
+  Visit,
+} from './types'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api/v1'
 
@@ -149,6 +190,54 @@ export const api = {
       body: JSON.stringify(body),
     })
   },
+  patientComplianceDocuments(token: string, patientId: number) {
+    return request<PatientComplianceDocument[]>(`/patients/${patientId}/compliance-documents`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addPatientComplianceDocument(token: string, patientId: number, body: Record<string, unknown>) {
+    return request<PatientComplianceDocument>(`/patients/${patientId}/compliance-documents/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  patientNotices(token: string, patientId: number) {
+    return request<PatientNotice[]>(`/patients/${patientId}/notices`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addPatientNotice(token: string, patientId: number, body: Record<string, unknown>) {
+    return request<PatientNotice>(`/patients/${patientId}/notices/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  patientMedications(token: string, patientId: number) {
+    return request<PatientMedication[]>(`/patients/${patientId}/medications`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addPatientMedication(token: string, patientId: number, body: Record<string, unknown>) {
+    return request<PatientMedication>(`/patients/${patientId}/medications/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  patientAllergies(token: string, patientId: number) {
+    return request<PatientAllergy[]>(`/patients/${patientId}/allergies`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addPatientAllergy(token: string, patientId: number, body: Record<string, unknown>) {
+    return request<PatientAllergy>(`/patients/${patientId}/allergies/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
   referrals(token: string) {
     return request<Referral[]>('/referrals', {
       headers: { Authorization: `Bearer ${token}` },
@@ -247,6 +336,11 @@ export const api = {
       headers: { Authorization: `Bearer ${token}` },
     })
   },
+  episodeInsights(token: string, id: number) {
+    return request<EpisodeInsightSummary>(`/episodes/${id}/insights`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
   episodeOrderDraft(token: string, id: number, scope: string) {
     return request<{
       episode_id: number
@@ -296,6 +390,240 @@ export const api = {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: JSON.stringify(body),
+    })
+  },
+  episodeVerbalOrders(token: string, episodeId: number) {
+    return request<VerbalOrder[]>(`/episodes/${episodeId}/verbal-orders`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addEpisodeVerbalOrder(token: string, episodeId: number, body: Record<string, unknown>) {
+    return request<VerbalOrder>(`/episodes/${episodeId}/verbal-orders/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  episodeAideSupervision(token: string, episodeId: number) {
+    return request<AideSupervisionEvent[]>(`/episodes/${episodeId}/aide-supervision`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addEpisodeAideSupervision(token: string, episodeId: number, body: Record<string, unknown>) {
+    return request<AideSupervisionEvent>(`/episodes/${episodeId}/aide-supervision/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  episodeIncidents(token: string, episodeId: number) {
+    return request<IncidentReport[]>(`/episodes/${episodeId}/incidents`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addEpisodeIncident(token: string, episodeId: number, body: Record<string, unknown>) {
+    return request<IncidentReport>(`/episodes/${episodeId}/incidents/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  episodeInfections(token: string, episodeId: number) {
+    return request<InfectionLog[]>(`/episodes/${episodeId}/infections`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addEpisodeInfection(token: string, episodeId: number, body: Record<string, unknown>) {
+    return request<InfectionLog>(`/episodes/${episodeId}/infections/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  episodeAuthorizations(token: string, episodeId: number) {
+    return request<PayerAuthorization[]>(`/episodes/${episodeId}/authorizations`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addEpisodeAuthorization(token: string, episodeId: number, body: Record<string, unknown>) {
+    return request<PayerAuthorization>(`/episodes/${episodeId}/authorizations/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  episodeEligibilityChecks(token: string, episodeId: number) {
+    return request<EligibilityCheck[]>(`/episodes/${episodeId}/eligibility-checks`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addEpisodeEligibilityCheck(token: string, episodeId: number, body: Record<string, unknown>) {
+    return request<EligibilityCheck>(`/episodes/${episodeId}/eligibility-checks/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  episodeDmeSupplyOrders(token: string, episodeId: number) {
+    return request<DmeSupplyOrder[]>(`/episodes/${episodeId}/dme-supply-orders`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addEpisodeDmeSupplyOrder(token: string, episodeId: number, body: Record<string, unknown>) {
+    return request<DmeSupplyOrder>(`/episodes/${episodeId}/dme-supply-orders/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  episodeCaseConferences(token: string, episodeId: number) {
+    return request<CaseConference[]>(`/episodes/${episodeId}/case-conferences`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addEpisodeCaseConference(token: string, episodeId: number, body: Record<string, unknown>) {
+    return request<CaseConference>(`/episodes/${episodeId}/case-conferences/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  oasisSubmissions(token: string) {
+    return request<OasisSubmission[]>('/oasis-submissions', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  prepareOasisSubmission(token: string, episodeId: number) {
+    return request<OasisSubmission>(`/episodes/${episodeId}/oasis-submissions/prepare`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    })
+  },
+  updateOasisSubmission(token: string, id: number, body: Record<string, unknown>) {
+    return request<OasisSubmission>(`/oasis-submissions/${id}/update`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  planOfCare(token: string) {
+    return request<PlanOfCare[]>('/plan-of-care', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  generatePlanOfCare(token: string, episodeId: number) {
+    return request<PlanOfCare>(`/episodes/${episodeId}/plan-of-care/generate`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    })
+  },
+  updatePlanOfCare(token: string, id: number, body: Record<string, unknown>) {
+    return request<PlanOfCare>(`/plan-of-care/${id}/update`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  coderReview(token: string) {
+    return request<CoderReviewItem[]>('/coder-review', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  syncCoderReview(token: string, episodeId: number) {
+    return request<CoderReviewItem[]>(`/episodes/${episodeId}/coder-review/sync`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({}),
+    })
+  },
+  updateCoderReview(token: string, id: number, body: Record<string, unknown>) {
+    return request<CoderReviewItem>(`/coder-review/${id}/update`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  communicationLog(token: string) {
+    return request<CommunicationLogEntry[]>('/communication-log', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addCommunicationLog(token: string, episodeId: number, body: Record<string, unknown>) {
+    return request<CommunicationLogEntry>(`/episodes/${episodeId}/communication-log/add`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  updateCommunicationLog(token: string, id: number, body: Record<string, unknown>) {
+    return request<CommunicationLogEntry>(`/communication-log/${id}/update`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  faxInbox(token: string) {
+    return request<FaxMessage[]>('/fax-inbox', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addFaxMessage(token: string, body: Record<string, unknown>) {
+    return request<FaxMessage>('/fax-inbox/add', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  routeFaxMessage(token: string, id: number, body: Record<string, unknown>) {
+    return request<FaxMessage>(`/fax-inbox/${id}/route`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  qapiProjects(token: string) {
+    return request<QapiProject[]>('/qapi-projects', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addQapiProject(token: string, body: Record<string, unknown>) {
+    return request<QapiProject>('/qapi-projects/add', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  updateQapiProject(token: string, id: number, body: Record<string, unknown>) {
+    return request<QapiProject>(`/qapi-projects/${id}/update`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  qualityMetrics(token: string, period = 'all') {
+    return request<QualityMetricsSummary>(`/quality-metrics?period=${encodeURIComponent(period)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  captureQualityMetrics(token: string, periodKey: string) {
+    return request<QualityMetricsSummary>('/quality-metrics/capture', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ period_key: periodKey }),
+    })
+  },
+  surveyReadiness(token: string) {
+    return request<SurveyReadinessSummary>('/admin/survey-readiness', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  captureSurveyReadiness(token: string, periodKey: string) {
+    return request<SurveyReadinessSummary>('/admin/survey-readiness/capture', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ period_key: periodKey }),
     })
   },
   assessments(token: string) {
@@ -400,6 +728,30 @@ export const api = {
   claims(token: string) {
     return request<Claim[]>('/claims', {
       headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  claimTransactions(token: string) {
+    return request<ClaimTransaction[]>('/billing/claim-transactions', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addClaimTransaction(token: string, body: Record<string, unknown>) {
+    return request<ClaimTransaction>('/billing/claim-transactions/add', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    })
+  },
+  remittancePostings(token: string) {
+    return request<RemittancePosting[]>('/billing/remittance-postings', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+  },
+  addRemittancePosting(token: string, body: Record<string, unknown>) {
+    return request<RemittancePosting>('/billing/remittance-postings/add', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
     })
   },
   submitClaim(token: string, id: number) {

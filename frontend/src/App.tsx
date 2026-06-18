@@ -1,5 +1,21 @@
 import { useEffect, useEffectEvent, useMemo, useRef, useState, type ReactNode } from 'react'
 import { api } from './lib/api'
+import {
+  formatAddress,
+  formatContact,
+  formatCoverage,
+  formatCurrency,
+  formatDueAt,
+  formatFileSize,
+  formatNamePhone,
+  formatPatientContacts,
+  formatServiceLocation,
+  formatStateCode,
+  formatTaskAssignee,
+  formatUsPhone,
+  formatZipCode,
+  labelizeValue,
+} from './domain/formatters'
 import { createDemoDataset } from './lib/demoData'
 import { addOfflineAction, loadOfflineQueue, removeOfflineAction } from './lib/offlineQueue'
 import type {
@@ -7,23 +23,45 @@ import type {
   AppUser,
   Assessment,
   AssessmentClinicalPayload,
+  AideSupervisionEvent,
   AuditEvent,
+  CaseConference,
   Claim,
+  ClaimTransaction,
+  CoderReviewItem,
+  CommunicationLogEntry,
+  ClinicalDecisionAlert,
   DashboardMetrics,
+  DmeSupplyOrder,
   Episode,
   EpisodeAdmissionSnapshot,
+  EpisodeInsightSummary,
   EpisodeReadiness,
   EpisodeReviewSummary,
   EvvRecord,
+  FaxMessage,
+  IncidentReport,
+  InfectionLog,
   OfflineAction,
+  OasisSubmission,
   Patient,
+  PatientAllergy,
+  PatientComplianceDocument,
+  PatientMedication,
+  PatientNotice,
+  PayerAuthorization,
   PhysicianOrder,
+  PlanOfCare,
   QaTask,
+  QapiProject,
   Referral,
   ReferralDocument,
+  RemittancePosting,
   SecuritySettings,
   SessionActivity,
+  SurveyReadinessSummary,
   User,
+  VerbalOrder,
   Visit,
   VisitDocumentationPayload,
 } from './lib/types'
@@ -436,6 +474,7 @@ function App() {
   })
   const [apiEpisodeReadiness, setApiEpisodeReadiness] = useState<EpisodeReadiness | null>(null)
   const [apiEpisodeReviewSummary, setApiEpisodeReviewSummary] = useState<EpisodeReviewSummary | null>(null)
+  const [apiEpisodeInsights, setApiEpisodeInsights] = useState<EpisodeInsightSummary | null>(null)
   const [lifecycleForm, setLifecycleForm] = useState({
     transition_type: 'recertify',
     effective_date: '2026-04-27',
@@ -527,6 +566,194 @@ function App() {
     service_postal_code: '',
     requested_disciplines: '',
     notes: '',
+  })
+  const [oasisSubmissionForm, setOasisSubmissionForm] = useState({
+    submission_id: '',
+    submission_status: 'submitted',
+    acknowledgment_note: '',
+    rejection_note: '',
+  })
+  const [planOfCareForm, setPlanOfCareForm] = useState({
+    plan_id: '',
+    review_status: 'draft',
+    plan_summary: '',
+    goal_summary: '',
+    intervention_summary: '',
+    printable_content: '',
+    physician_review_note: '',
+  })
+  const [coderReviewForm, setCoderReviewForm] = useState({
+    item_id: '',
+    status: 'open',
+    correction_note: '',
+    recommendation: '',
+  })
+  const [communicationLogForm, setCommunicationLogForm] = useState({
+    contact_name: '',
+    contact_role: 'Provider',
+    method: 'phone',
+    topic: '',
+    outcome: '',
+    follow_up_owner: '',
+    follow_up_due_at: currentDateTimeInputValue(),
+  })
+  const [faxMessageForm, setFaxMessageForm] = useState({
+    source_name: '',
+    from_number: '',
+    subject: '',
+    packet_type: 'referral_packet',
+    received_at: currentDateTimeInputValue(),
+    attachment_note: '',
+    linked_document_count: '1',
+  })
+  const [faxRoutingForm, setFaxRoutingForm] = useState({
+    fax_id: '',
+    routing_status: 'classified',
+    route_note: '',
+    create_referral: 'no',
+    patient_id: '1',
+    admission_source: 'Hospital discharge',
+    payer_type: 'Medicare',
+    primary_diagnosis: '',
+    planned_soc_date: '2026-04-19',
+    requested_disciplines: 'SN',
+  })
+  const [qapiForm, setQapiForm] = useState({
+    title: '',
+    measure_name: 'Documentation timeliness',
+    owner_name: '',
+    review_cadence: 'monthly',
+    status: 'active',
+    target_value: '',
+    current_value: '',
+    intervention_plan: '',
+    evidence_summary: '',
+  })
+  const [complianceDocumentForm, setComplianceDocumentForm] = useState({
+    document_type: 'consent',
+    status: 'signed',
+    delivery_method: 'tablet_signature',
+    signed_at: '2026-04-19T08:35',
+    notes: 'Reviewed and signed during admission.',
+  })
+  const [patientNoticeForm, setPatientNoticeForm] = useState({
+    notice_type: 'HHCCN',
+    status: 'delivered_signed',
+    reason: 'Admission notice reviewed with patient.',
+    billing_impact: 'No claim hold.',
+    delivered_at: '2026-04-19T08:45',
+    signed_at: '2026-04-19T08:46',
+  })
+  const [medicationForm, setMedicationForm] = useState({
+    medication_name: 'Furosemide',
+    dosage: '40 mg',
+    route: 'PO',
+    frequency: 'Daily',
+    status: 'active',
+    high_risk: 'yes',
+    teaching_completed: 'yes',
+    reconciled_at: '2026-04-19T09:05',
+    prescriber_name: 'Dr. Hayes',
+    change_reason: 'SOC medication reconciliation.',
+  })
+  const [allergyForm, setAllergyForm] = useState({
+    allergen: 'Penicillin',
+    reaction: 'Rash',
+    severity: 'moderate',
+    verified_at: '2026-04-19T09:00',
+  })
+  const [verbalOrderForm, setVerbalOrderForm] = useState({
+    physician_name: 'Dr. Hayes',
+    order_source: 'phone',
+    order_summary: 'Add PRN SN visit for symptom assessment.',
+    ordered_service: 'SN PRN visit',
+    received_by: 'RN Case Manager',
+    read_back_completed: 'yes',
+    received_at: '2026-04-21T15:10',
+    status: 'sent_for_signature',
+  })
+  const [aideSupervisionForm, setAideSupervisionForm] = useState({
+    aide_name: 'Lena Aide',
+    supervising_clinician: 'RN Case Manager',
+    supervision_type: 'onsite',
+    supervised_at: '2026-04-24T10:30',
+    next_due_at: '2026-05-08T10:30',
+    status: 'completed',
+    care_plan_tasks: 'Bathing assistance, transfers, meal setup reminders.',
+    findings: 'Aide followed the care plan safely.',
+  })
+  const [incidentForm, setIncidentForm] = useState({
+    event_type: 'fall',
+    severity: 'moderate',
+    occurred_at: '2026-04-25T18:00',
+    description: 'Patient reported a near fall during transfer.',
+    follow_up_owner: 'RN Case Manager',
+    follow_up_due_at: '2026-04-26T12:00',
+    qapi_linked: 'yes',
+    status: 'open',
+  })
+  const [infectionForm, setInfectionForm] = useState({
+    infection_type: 'suspected_uti',
+    identified_at: '2026-04-26T09:00',
+    source: 'Clinician assessment',
+    intervention_summary: 'Physician notified; hydration and symptom monitoring taught.',
+    physician_notified: 'yes',
+    qapi_linked: 'no',
+    status: 'monitoring',
+  })
+  const [authorizationForm, setAuthorizationForm] = useState({
+    payer_type: 'Medicare Advantage',
+    authorization_number: 'AUTH-DEMO-1001',
+    authorized_visits: '12',
+    used_visits: '2',
+    effective_date: '2026-04-19',
+    expiration_date: '2026-06-17',
+    status: 'approved',
+    verification_notes: 'Verified through demo eligibility adapter.',
+  })
+  const [eligibilityForm, setEligibilityForm] = useState({
+    payer_type: 'Medicare',
+    check_status: 'eligible',
+    checked_at: '2026-04-18T11:20',
+    coverage_summary: 'Coverage active for home health benefit.',
+    response_reference: 'ELG-DEMO-001',
+  })
+  const [dmeSupplyForm, setDmeSupplyForm] = useState({
+    item_name: 'Digital scale',
+    order_type: 'DME',
+    status: 'delivered',
+    ordered_at: '2026-04-19T11:00',
+    delivered_at: '2026-04-20T14:00',
+    usage_documented: 'yes',
+    plan_of_care_linked: 'yes',
+    billing_relevance: 'Supports CHF monitoring plan.',
+  })
+  const [caseConferenceForm, setCaseConferenceForm] = useState({
+    conference_date: '2026-04-26T13:00',
+    participants: 'RN Case Manager, PT, QA Reviewer, Scheduler',
+    decisions: 'Continue SN and PT plan; monitor CHF action-plan adherence.',
+    follow_up_owner: 'RN Case Manager',
+    follow_up_due_at: '2026-05-03T13:00',
+    cadence: 'weekly',
+    status: 'completed',
+  })
+  const [claimTransactionForm, setClaimTransactionForm] = useState({
+    claim_id: '',
+    transaction_type: '837I',
+    transaction_status: 'created',
+    payer_control_number: '',
+    payload_summary: 'Demo claim transaction generated for clearinghouse review.',
+    response_summary: '',
+    transmitted_at: '2026-04-22T09:00',
+  })
+  const [remittanceForm, setRemittanceForm] = useState({
+    claim_id: '',
+    era_reference: 'ERA-DEMO',
+    payment_amount: '0',
+    adjustment_amount: '0',
+    reason_codes: 'Demo remittance posting.',
+    posted_at: '2026-04-29T10:15',
+    reconciliation_status: 'posted',
   })
   const isMedicarePayer = patientForm.payer_type === 'Medicare' || patientForm.payer_type === 'Medicare Advantage'
   const requiresInsuranceMemberId = !['Private Pay', 'Medicare', 'Medicare Advantage'].includes(patientForm.payer_type)
@@ -712,7 +939,7 @@ function App() {
   }, [statusMessage])
 
   async function hydrateFromApi(authToken: string, authUser: User) {
-    const [dashboard, adminSettings, adminUsers, sessionActivity, auditEvents, patients, referrals, referralDocuments, physicianOrders, episodes, assessments, visits, evv, claims, qa] = await Promise.all([
+    const [dashboard, adminSettings, adminUsers, sessionActivity, auditEvents, patients, referrals, referralDocuments, physicianOrders, episodes, assessments, visits, evv, claims, claimTransactions, remittancePostings, qa, oasisSubmissions, planOfCare, coderReview, communicationLog, faxInbox, qapiProjects, qualityMetrics, surveyReadiness] = await Promise.all([
       api.dashboard(authToken),
       api.adminSettings(authToken),
       api.adminUsers(authToken),
@@ -727,21 +954,75 @@ function App() {
       api.visits(authToken),
       api.evv(authToken),
       api.claims(authToken),
+      api.claimTransactions(authToken),
+      api.remittancePostings(authToken),
       api.qa(authToken),
+      api.oasisSubmissions(authToken),
+      api.planOfCare(authToken),
+      api.coderReview(authToken),
+      api.communicationLog(authToken),
+      api.faxInbox(authToken),
+      api.qapiProjects(authToken),
+      api.qualityMetrics(authToken),
+      api.surveyReadiness(authToken),
     ])
 
-    const patientIndex = new Map<number, Patient>((patients.data ?? []).map((patient) => [patient.id, patient]))
+    const apiPatients = patients.data ?? []
+    const apiEpisodes = episodes.data ?? []
+    const patientIndex = new Map<number, Patient>(apiPatients.map((patient) => [patient.id, patient]))
+    const [
+      patientComplianceDocuments,
+      patientNotices,
+      patientMedications,
+      patientAllergies,
+      verbalOrders,
+      aideSupervisionEvents,
+      incidentReports,
+      infectionLogs,
+      payerAuthorizations,
+      eligibilityChecks,
+      dmeSupplyOrders,
+      caseConferences,
+    ] = await Promise.all([
+      Promise.all(apiPatients.map((patient) => api.patientComplianceDocuments(authToken, patient.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiPatients.map((patient) => api.patientNotices(authToken, patient.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiPatients.map((patient) => api.patientMedications(authToken, patient.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiPatients.map((patient) => api.patientAllergies(authToken, patient.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiEpisodes.map((episode) => api.episodeVerbalOrders(authToken, episode.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiEpisodes.map((episode) => api.episodeAideSupervision(authToken, episode.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiEpisodes.map((episode) => api.episodeIncidents(authToken, episode.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiEpisodes.map((episode) => api.episodeInfections(authToken, episode.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiEpisodes.map((episode) => api.episodeAuthorizations(authToken, episode.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiEpisodes.map((episode) => api.episodeEligibilityChecks(authToken, episode.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiEpisodes.map((episode) => api.episodeDmeSupplyOrders(authToken, episode.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+      Promise.all(apiEpisodes.map((episode) => api.episodeCaseConferences(authToken, episode.id))).then((responses) => responses.flatMap((response) => response.data ?? [])),
+    ])
 
     const nextDataset = {
       metrics: dashboard.metrics as DashboardMetrics,
-      patients: patients.data ?? [],
+      patients: apiPatients,
       referrals: (referrals.data ?? []).map((referral) => ({
         ...referral,
         patient_name: referral.patient_name ?? nameForPatient(patientIndex.get(referral.patient_id)),
       })),
       referralDocuments: referralDocuments.data ?? [],
       physicianOrders: physicianOrders.data ?? [],
-      episodes: (episodes.data ?? []).map((episode) => ({
+      patientComplianceDocuments,
+      patientNotices,
+      patientMedications,
+      patientAllergies,
+      verbalOrders,
+      aideSupervisionEvents,
+      incidentReports,
+      infectionLogs,
+      payerAuthorizations,
+      eligibilityChecks,
+      claimTransactions: claimTransactions.data ?? [],
+      remittancePostings: remittancePostings.data ?? [],
+      dmeSupplyOrders,
+      caseConferences,
+      surveyReadinessSummary: surveyReadiness.data ?? createDemoDataset().surveyReadinessSummary,
+      episodes: apiEpisodes.map((episode) => ({
         ...episode,
         admission_readiness_snapshot: normalizeAdmissionSnapshot(episode.admission_readiness_snapshot),
         patient_name: episode.patient_name ?? nameForPatient(patientIndex.get(episode.patient_id)),
@@ -758,6 +1039,14 @@ function App() {
       evvRecords: evv.data ?? [],
       claims: claims.data ?? [],
       qaTasks: normalizeQaTasksForUi(qa.data ?? []),
+      oasisSubmissions: oasisSubmissions.data ?? [],
+      planOfCares: planOfCare.data ?? [],
+      coderReviewItems: coderReview.data ?? [],
+      communicationLogEntries: communicationLog.data ?? [],
+      faxMessages: faxInbox.data ?? [],
+      qapiProjects: normalizeQapiProjects(qapiProjects.data ?? []),
+      qualityMetricsSummary: qualityMetrics.data ?? createDemoDataset().qualityMetricsSummary,
+      episodeInsights: [],
       securitySettings: adminSettings.data ?? createDemoDataset().securitySettings,
       adminUsers: adminUsers.data ?? [],
       sessionActivity: sessionActivity.data ?? [],
@@ -1187,6 +1476,57 @@ function App() {
     setEditingOrderId(null)
   }
 
+  function resetOasisSubmissionForm() {
+    setOasisSubmissionForm({
+      submission_id: '',
+      submission_status: 'submitted',
+      acknowledgment_note: '',
+      rejection_note: '',
+    })
+  }
+
+  function loadOasisSubmissionIntoForm(submission: OasisSubmission) {
+    setOasisSubmissionForm({
+      submission_id: String(submission.id),
+      submission_status: submission.submission_status,
+      acknowledgment_note: submission.acknowledgment_note ?? '',
+      rejection_note: submission.rejection_note ?? '',
+    })
+  }
+
+  function resetPlanOfCareForm() {
+    setPlanOfCareForm({
+      plan_id: '',
+      review_status: 'draft',
+      plan_summary: '',
+      goal_summary: '',
+      intervention_summary: '',
+      printable_content: '',
+      physician_review_note: '',
+    })
+  }
+
+  function loadPlanOfCareIntoForm(plan: PlanOfCare) {
+    setPlanOfCareForm({
+      plan_id: String(plan.id),
+      review_status: plan.review_status,
+      plan_summary: plan.plan_summary ?? '',
+      goal_summary: plan.goal_summary ?? '',
+      intervention_summary: plan.intervention_summary ?? '',
+      printable_content: plan.printable_content ?? '',
+      physician_review_note: plan.physician_review_note ?? '',
+    })
+  }
+
+  function loadCoderReviewIntoForm(item: CoderReviewItem) {
+    setCoderReviewForm({
+      item_id: String(item.id),
+      status: item.status,
+      correction_note: item.correction_note ?? '',
+      recommendation: item.recommendation ?? '',
+    })
+  }
+
   function loadReferralDocumentIntoForm(document: ReferralDocument) {
     setEpisodeWorkspaceTab('admission')
     setEpisodeModal('documents')
@@ -1277,6 +1617,8 @@ function App() {
     syncEpisodeAdmissionForm(resolvedEpisode)
     resetReferralDocumentForm()
     resetOrderForm()
+    resetOasisSubmissionForm()
+    resetPlanOfCareForm()
   }
 
   function latestAssessmentForEpisode(episodeId: number) {
@@ -3385,6 +3727,1021 @@ function App() {
     setStatusMessage(evvLifecycleForm.action === 'exception' ? 'EVV exception recorded in demo mode.' : 'EVV record reconciled in demo mode.')
   }
 
+  async function prepareOasisSubmissionForSelectedEpisode() {
+    if (!selectedEpisode) {
+      setStatusMessage('Choose an episode before preparing an OASIS submission package.')
+      return
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        const response = await api.prepareOasisSubmission(token, selectedEpisode.id)
+        if (response.data) {
+          loadOasisSubmissionIntoForm(response.data)
+        }
+        await hydrateFromApi(token, user!)
+        setStatusMessage('OASIS submission package prepared.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const nextId = dataset.oasisSubmissions.reduce((max, item) => Math.max(max, item.id), 0) + 1
+    const submission: OasisSubmission = {
+      id: nextId,
+      episode_id: selectedEpisode.id,
+      assessment_id: latestAssessmentForEpisode(selectedEpisode.id)?.id,
+      submission_status: episodeInsights?.documentation_integrity.blockers.length ? 'draft' : 'ready',
+      iqies_ready: (episodeInsights?.documentation_integrity.blockers.length ?? 0) === 0,
+      submission_reference: `IQIES-DEMO-${String(nextId).padStart(3, '0')}`,
+      readiness_notes: episodeInsights?.documentation_integrity.blockers.join(' | ') || 'Submission package is ready for demo export.',
+    }
+    setDataset((current) => recalculate({ ...current, oasisSubmissions: [submission, ...current.oasisSubmissions] }))
+    loadOasisSubmissionIntoForm(submission)
+    setStatusMessage('OASIS submission package prepared in demo mode.')
+  }
+
+  async function runOasisSubmissionAction() {
+    const submissionId = Number(oasisSubmissionForm.submission_id)
+    if (!submissionId) {
+      setStatusMessage('Choose an OASIS submission package before applying a status update.')
+      return
+    }
+
+    const payload = {
+      submission_status: oasisSubmissionForm.submission_status,
+      acknowledgment_note: oasisSubmissionForm.acknowledgment_note.trim(),
+      rejection_note: oasisSubmissionForm.rejection_note.trim(),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.updateOasisSubmission(token, submissionId, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('OASIS submission updated.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const now = new Date().toISOString().slice(0, 19).replace('T', ' ')
+    setDataset((current) =>
+      recalculate({
+        ...current,
+        oasisSubmissions: current.oasisSubmissions.map((item) =>
+          item.id === submissionId
+            ? {
+                ...item,
+                submission_status: payload.submission_status,
+                acknowledged_at: ['accepted', 'rejected'].includes(payload.submission_status) ? now : item.acknowledged_at,
+                submitted_at: payload.submission_status === 'submitted' ? now : item.submitted_at,
+                acknowledgment_status: payload.submission_status === 'accepted' ? 'accepted' : payload.submission_status === 'rejected' ? 'rejected' : item.acknowledgment_status,
+                acknowledgment_note: payload.acknowledgment_note || item.acknowledgment_note,
+                rejection_note: payload.rejection_note || item.rejection_note,
+              }
+            : item,
+        ),
+      }),
+    )
+    setStatusMessage('OASIS submission updated in demo mode.')
+  }
+
+  async function generatePlanOfCareForSelectedEpisode() {
+    if (!selectedEpisode) {
+      setStatusMessage('Choose an episode before generating a plan of care.')
+      return
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        const response = await api.generatePlanOfCare(token, selectedEpisode.id)
+        if (response.data) {
+          loadPlanOfCareIntoForm(response.data)
+        }
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Plan of care generated.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const assessment = latestAssessmentForEpisode(selectedEpisode.id)
+    const nextId = dataset.planOfCares.reduce((max, item) => Math.max(max, item.id), 0) + 1
+    const plan: PlanOfCare = {
+      id: nextId,
+      episode_id: selectedEpisode.id,
+      assessment_id: assessment?.id,
+      physician_order_id: selectedEpisodeOrders[0]?.id,
+      version_number: dataset.planOfCares.filter((item) => item.episode_id === selectedEpisode.id).length + 1,
+      review_status: 'draft',
+      effective_date: selectedEpisode.cert_start_date,
+      plan_summary: `485-ready plan of care for ${selectedEpisode.primary_diagnosis}.`,
+      goal_summary: assessment?.care_plan_goals ?? '',
+      intervention_summary: assessment?.clinical_summary ?? '',
+      printable_content: `ETHIZO HOME HEALTH CARE DEMO - PLAN OF CARE (485 READY)\nEpisode ${selectedEpisode.id}`,
+      physician_review_note: '',
+    }
+    setDataset((current) => recalculate({ ...current, planOfCares: [plan, ...current.planOfCares] }))
+    loadPlanOfCareIntoForm(plan)
+    setStatusMessage('Plan of care generated in demo mode.')
+  }
+
+  async function savePlanOfCare() {
+    const planId = Number(planOfCareForm.plan_id)
+    if (!planId) {
+      setStatusMessage('Generate or choose a plan of care before saving changes.')
+      return
+    }
+
+    const payload = {
+      review_status: planOfCareForm.review_status,
+      plan_summary: planOfCareForm.plan_summary.trim(),
+      goal_summary: planOfCareForm.goal_summary.trim(),
+      intervention_summary: planOfCareForm.intervention_summary.trim(),
+      printable_content: planOfCareForm.printable_content.trim(),
+      physician_review_note: planOfCareForm.physician_review_note.trim(),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.updatePlanOfCare(token, planId, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Plan of care updated.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    setDataset((current) =>
+      recalculate({
+        ...current,
+        planOfCares: current.planOfCares.map((item) => (item.id === planId ? { ...item, ...payload } : item)),
+      }),
+    )
+    setStatusMessage('Plan of care updated in demo mode.')
+  }
+
+  async function syncCoderReviewForSelectedEpisode() {
+    if (!selectedEpisode) {
+      setStatusMessage('Choose an episode before syncing coder review.')
+      return
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        const response = await api.syncCoderReview(token, selectedEpisode.id)
+        const firstItem = response.data?.[0]
+        if (firstItem) {
+          loadCoderReviewIntoForm(firstItem)
+        }
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Coder review queue refreshed.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const nextId = dataset.coderReviewItems.reduce((max, item) => Math.max(max, item.id), 0) + 1
+    const item: CoderReviewItem = {
+      id: nextId,
+      episode_id: selectedEpisode.id,
+      claim_id: dataset.claims.find((entry) => entry.episode_id === selectedEpisode.id)?.id,
+      assessment_id: latestAssessmentForEpisode(selectedEpisode.id)?.id,
+      category: episodeInsights?.utilization_risk.risk_level === 'high' ? 'utilization' : 'documentation',
+      status: 'open',
+      priority: episodeInsights?.utilization_risk.risk_level === 'high' ? 'high' : 'medium',
+      title: episodeInsights?.utilization_risk.risk_level === 'high' ? 'LUPA protection review needed' : 'Documentation review needed',
+      details:
+        episodeInsights?.utilization_risk.risk_level === 'high'
+          ? episodeInsights.utilization_risk.warning_note ?? ''
+          : episodeReviewSummary?.billing_blockers[0] ?? 'Review billing blockers and reconcile coding guidance.',
+      recommendation:
+        episodeInsights?.utilization_risk.risk_level === 'high'
+          ? episodeInsights.utilization_risk.recommended_action ?? ''
+          : 'Resolve documentation and coding blockers before corrected-claim preparation.',
+    }
+    setDataset((current) => recalculate({ ...current, coderReviewItems: [item, ...current.coderReviewItems] }))
+    loadCoderReviewIntoForm(item)
+    setStatusMessage('Coder review queue refreshed in demo mode.')
+  }
+
+  async function saveCoderReviewItem() {
+    const itemId = Number(coderReviewForm.item_id)
+    if (!itemId) {
+      setStatusMessage('Choose a coder review item before saving.')
+      return
+    }
+
+    const payload = {
+      status: coderReviewForm.status,
+      correction_note: coderReviewForm.correction_note.trim(),
+      recommendation: coderReviewForm.recommendation.trim(),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.updateCoderReview(token, itemId, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Coder review item updated.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    setDataset((current) =>
+      recalculate({
+        ...current,
+        coderReviewItems: current.coderReviewItems.map((item) =>
+          item.id === itemId
+            ? {
+                ...item,
+                ...payload,
+                resolved_at: payload.status === 'resolved' ? new Date().toISOString().slice(0, 19).replace('T', ' ') : item.resolved_at,
+              }
+            : item,
+        ),
+      }),
+    )
+    setStatusMessage('Coder review item updated in demo mode.')
+  }
+
+  async function saveCommunicationLogEntry() {
+    if (!selectedEpisode) {
+      setStatusMessage('Choose an episode before logging communication.')
+      return
+    }
+
+    const payload = {
+      contact_name: communicationLogForm.contact_name.trim(),
+      contact_role: communicationLogForm.contact_role.trim(),
+      method: communicationLogForm.method.trim(),
+      topic: communicationLogForm.topic.trim(),
+      outcome: communicationLogForm.outcome.trim(),
+      follow_up_owner: communicationLogForm.follow_up_owner.trim(),
+      follow_up_due_at: toApiDateTime(communicationLogForm.follow_up_due_at),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addCommunicationLog(token, selectedEpisode.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Communication entry logged.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const nextId = dataset.communicationLogEntries.reduce((max, item) => Math.max(max, item.id), 0) + 1
+    const entry: CommunicationLogEntry = {
+      id: nextId,
+      episode_id: selectedEpisode.id,
+      entry_type: 'coordination',
+      contact_name: payload.contact_name,
+      contact_role: payload.contact_role,
+      method: payload.method,
+      topic: payload.topic,
+      outcome: payload.outcome,
+      follow_up_owner: payload.follow_up_owner,
+      follow_up_due_at: payload.follow_up_due_at,
+      status: payload.follow_up_due_at ? 'follow_up_due' : 'logged',
+      created: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    }
+    setDataset((current) => recalculate({ ...current, communicationLogEntries: [entry, ...current.communicationLogEntries] }))
+    setStatusMessage('Communication entry logged in demo mode.')
+  }
+
+  async function saveFaxMessage() {
+    const payload = {
+      source_name: faxMessageForm.source_name.trim(),
+      from_number: faxMessageForm.from_number.trim(),
+      subject: faxMessageForm.subject.trim(),
+      packet_type: faxMessageForm.packet_type,
+      received_at: toApiDateTime(faxMessageForm.received_at),
+      attachment_note: faxMessageForm.attachment_note.trim(),
+      linked_document_count: Number(faxMessageForm.linked_document_count || '0'),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addFaxMessage(token, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Fax packet added to the inbox.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const nextId = dataset.faxMessages.reduce((max, item) => Math.max(max, item.id), 0) + 1
+    const message: FaxMessage = {
+      id: nextId,
+      referral_id: undefined,
+      source_name: payload.source_name,
+      from_number: payload.from_number,
+      subject: payload.subject,
+      packet_type: payload.packet_type,
+      routing_status: 'new',
+      received_at: payload.received_at,
+      attachment_note: payload.attachment_note,
+      linked_document_count: payload.linked_document_count,
+    }
+    setDataset((current) => recalculate({ ...current, faxMessages: [message, ...current.faxMessages] }))
+    setFaxRoutingForm((current) => ({ ...current, fax_id: String(message.id), primary_diagnosis: current.primary_diagnosis || selectedEpisode?.primary_diagnosis || '' }))
+    setStatusMessage('Fax packet added in demo mode.')
+  }
+
+  async function routeFaxMessageAction() {
+    const faxId = Number(faxRoutingForm.fax_id)
+    if (!faxId) {
+      setStatusMessage('Choose a fax packet before routing it.')
+      return
+    }
+
+    const payload = {
+      routing_status: faxRoutingForm.routing_status,
+      route_note: faxRoutingForm.route_note.trim(),
+      create_referral: faxRoutingForm.create_referral === 'yes',
+      patient_id: Number(faxRoutingForm.patient_id),
+      admission_source: faxRoutingForm.admission_source,
+      payer_type: faxRoutingForm.payer_type,
+      primary_diagnosis: faxRoutingForm.primary_diagnosis.trim(),
+      planned_soc_date: faxRoutingForm.planned_soc_date,
+      requested_disciplines: csvToArray(faxRoutingForm.requested_disciplines),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.routeFaxMessage(token, faxId, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Fax packet routed.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const currentPatient = dataset.patients.find((patient) => patient.id === Number(faxRoutingForm.patient_id))
+    const maybeNewReferral =
+      payload.create_referral && currentPatient
+        ? {
+            id: dataset.referrals.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+            patient_id: currentPatient.id,
+            patient_name: nameForPatient(currentPatient),
+            source_name: dataset.faxMessages.find((item) => item.id === faxId)?.source_name ?? 'Fax inbox',
+            admission_source: payload.admission_source,
+            payer_type: payload.payer_type,
+            primary_diagnosis: payload.primary_diagnosis || 'R69 Unspecified illness',
+            requested_disciplines: payload.requested_disciplines,
+            order_status: 'pending',
+            planned_soc_date: payload.planned_soc_date,
+            intake_ready: false,
+            status: 'received',
+          }
+        : null
+
+    setDataset((current) =>
+      recalculate({
+        ...current,
+        faxMessages: current.faxMessages.map((item) =>
+          item.id === faxId
+            ? {
+                ...item,
+                referral_id: maybeNewReferral?.id ?? item.referral_id,
+                routing_status: payload.create_referral ? 'converted_to_referral' : payload.routing_status,
+                route_note: payload.route_note,
+              }
+            : item,
+        ),
+        referrals: maybeNewReferral ? [maybeNewReferral as Referral, ...current.referrals] : current.referrals,
+      }),
+    )
+    setStatusMessage(payload.create_referral ? 'Fax packet converted into a referral in demo mode.' : 'Fax packet routed in demo mode.')
+  }
+
+  async function saveQapiProject() {
+    const payload = {
+      title: qapiForm.title.trim(),
+      measure_name: qapiForm.measure_name.trim(),
+      owner_name: qapiForm.owner_name.trim(),
+      review_cadence: qapiForm.review_cadence,
+      status: qapiForm.status,
+      target_value: qapiForm.target_value.trim(),
+      current_value: qapiForm.current_value.trim(),
+      intervention_plan: qapiForm.intervention_plan.trim(),
+      evidence_summary: qapiForm.evidence_summary.trim(),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addQapiProject(token, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('QAPI project saved.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const nextId = dataset.qapiProjects.reduce((max, item) => Math.max(max, item.id), 0) + 1
+    const project: QapiProject = {
+      id: nextId,
+      ...payload,
+      linked_task_ids: [],
+      linked_audit_event_ids: [],
+      last_reviewed_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    }
+    setDataset((current) => recalculate({ ...current, qapiProjects: [project, ...current.qapiProjects] }))
+    setStatusMessage('QAPI project saved in demo mode.')
+  }
+
+  async function saveComplianceDocument() {
+    if (!selectedPatient) {
+      setStatusMessage('Choose a patient before adding a compliance document.')
+      return
+    }
+
+    const payload = {
+      episode_id: selectedEpisode?.id,
+      document_type: complianceDocumentForm.document_type,
+      status: complianceDocumentForm.status,
+      delivery_method: complianceDocumentForm.delivery_method,
+      signed_at: complianceDocumentForm.signed_at ? toApiDateTime(complianceDocumentForm.signed_at) : '',
+      notes: complianceDocumentForm.notes.trim(),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addPatientComplianceDocument(token, selectedPatient.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Compliance document added.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const document: PatientComplianceDocument = {
+      id: dataset.patientComplianceDocuments.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      patient_id: selectedPatient.id,
+      episode_id: payload.episode_id,
+      document_type: payload.document_type,
+      status: payload.status,
+      delivery_method: payload.delivery_method,
+      signed_at: payload.signed_at,
+      notes: payload.notes,
+    }
+    setDataset((current) => recalculate({ ...current, patientComplianceDocuments: [document, ...current.patientComplianceDocuments] }))
+    setStatusMessage('Compliance document added in demo mode.')
+  }
+
+  async function savePatientNotice() {
+    if (!selectedPatient) {
+      setStatusMessage('Choose a patient before adding a notice.')
+      return
+    }
+
+    const payload = {
+      episode_id: selectedEpisode?.id,
+      notice_type: patientNoticeForm.notice_type,
+      status: patientNoticeForm.status,
+      reason: patientNoticeForm.reason.trim(),
+      billing_impact: patientNoticeForm.billing_impact.trim(),
+      delivered_at: patientNoticeForm.delivered_at ? toApiDateTime(patientNoticeForm.delivered_at) : '',
+      signed_at: patientNoticeForm.signed_at ? toApiDateTime(patientNoticeForm.signed_at) : '',
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addPatientNotice(token, selectedPatient.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Patient notice added.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const notice: PatientNotice = {
+      id: dataset.patientNotices.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      patient_id: selectedPatient.id,
+      episode_id: payload.episode_id,
+      notice_type: payload.notice_type,
+      status: payload.status,
+      reason: payload.reason,
+      billing_impact: payload.billing_impact,
+      delivered_at: payload.delivered_at,
+      signed_at: payload.signed_at,
+    }
+    setDataset((current) => recalculate({ ...current, patientNotices: [notice, ...current.patientNotices] }))
+    setStatusMessage('Patient notice added in demo mode.')
+  }
+
+  async function saveMedication() {
+    if (!selectedPatient) {
+      setStatusMessage('Choose a patient before adding medication.')
+      return
+    }
+
+    const payload = {
+      episode_id: selectedEpisode?.id,
+      medication_name: medicationForm.medication_name.trim(),
+      dosage: medicationForm.dosage.trim(),
+      route: medicationForm.route.trim(),
+      frequency: medicationForm.frequency.trim(),
+      status: medicationForm.status,
+      high_risk: medicationForm.high_risk === 'yes',
+      teaching_completed: medicationForm.teaching_completed === 'yes',
+      reconciled_at: medicationForm.reconciled_at ? toApiDateTime(medicationForm.reconciled_at) : '',
+      prescriber_name: medicationForm.prescriber_name.trim(),
+      change_reason: medicationForm.change_reason.trim(),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addPatientMedication(token, selectedPatient.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Medication profile updated.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const medication: PatientMedication = {
+      id: dataset.patientMedications.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      patient_id: selectedPatient.id,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, patientMedications: [medication, ...current.patientMedications] }))
+    setStatusMessage('Medication profile updated in demo mode.')
+  }
+
+  async function saveAllergy() {
+    if (!selectedPatient) {
+      setStatusMessage('Choose a patient before adding an allergy.')
+      return
+    }
+
+    const payload = {
+      allergen: allergyForm.allergen.trim(),
+      reaction: allergyForm.reaction.trim(),
+      severity: allergyForm.severity,
+      verified_at: allergyForm.verified_at ? toApiDateTime(allergyForm.verified_at) : '',
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addPatientAllergy(token, selectedPatient.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Allergy added.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const allergy: PatientAllergy = {
+      id: dataset.patientAllergies.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      patient_id: selectedPatient.id,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, patientAllergies: [allergy, ...current.patientAllergies] }))
+    setStatusMessage('Allergy added in demo mode.')
+  }
+
+  async function saveVerbalOrder() {
+    if (!selectedEpisode) {
+      setStatusMessage('Choose an episode before adding a verbal order.')
+      return
+    }
+
+    const payload = {
+      physician_name: verbalOrderForm.physician_name.trim(),
+      order_source: verbalOrderForm.order_source.trim(),
+      order_summary: verbalOrderForm.order_summary.trim(),
+      ordered_service: verbalOrderForm.ordered_service.trim(),
+      received_by: verbalOrderForm.received_by.trim(),
+      read_back_completed: verbalOrderForm.read_back_completed === 'yes',
+      received_at: verbalOrderForm.received_at ? toApiDateTime(verbalOrderForm.received_at) : '',
+      status: verbalOrderForm.status,
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addEpisodeVerbalOrder(token, selectedEpisode.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Verbal order added.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const order: VerbalOrder = {
+      id: dataset.verbalOrders.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      episode_id: selectedEpisode.id,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, verbalOrders: [order, ...current.verbalOrders] }))
+    setStatusMessage('Verbal order added in demo mode.')
+  }
+
+  async function saveAideSupervision() {
+    if (!selectedEpisode) {
+      setStatusMessage('Choose an episode before adding aide supervision.')
+      return
+    }
+
+    const payload = {
+      aide_name: aideSupervisionForm.aide_name.trim(),
+      supervising_clinician: aideSupervisionForm.supervising_clinician.trim(),
+      supervision_type: aideSupervisionForm.supervision_type,
+      supervised_at: aideSupervisionForm.supervised_at ? toApiDateTime(aideSupervisionForm.supervised_at) : '',
+      next_due_at: aideSupervisionForm.next_due_at ? toApiDateTime(aideSupervisionForm.next_due_at) : '',
+      status: aideSupervisionForm.status,
+      care_plan_tasks: aideSupervisionForm.care_plan_tasks.trim(),
+      findings: aideSupervisionForm.findings.trim(),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addEpisodeAideSupervision(token, selectedEpisode.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Aide supervision recorded.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const event: AideSupervisionEvent = {
+      id: dataset.aideSupervisionEvents.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      episode_id: selectedEpisode.id,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, aideSupervisionEvents: [event, ...current.aideSupervisionEvents] }))
+    setStatusMessage('Aide supervision recorded in demo mode.')
+  }
+
+  async function saveIncident() {
+    if (!selectedEpisode || !selectedPatient) {
+      setStatusMessage('Choose an episode before adding an incident.')
+      return
+    }
+
+    const payload = {
+      patient_id: selectedPatient.id,
+      event_type: incidentForm.event_type,
+      severity: incidentForm.severity,
+      occurred_at: incidentForm.occurred_at ? toApiDateTime(incidentForm.occurred_at) : '',
+      description: incidentForm.description.trim(),
+      follow_up_owner: incidentForm.follow_up_owner.trim(),
+      follow_up_due_at: incidentForm.follow_up_due_at ? toApiDateTime(incidentForm.follow_up_due_at) : '',
+      qapi_linked: incidentForm.qapi_linked === 'yes',
+      status: incidentForm.status,
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addEpisodeIncident(token, selectedEpisode.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Incident recorded.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const incident: IncidentReport = {
+      id: dataset.incidentReports.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      episode_id: selectedEpisode.id,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, incidentReports: [incident, ...current.incidentReports] }))
+    setStatusMessage('Incident recorded in demo mode.')
+  }
+
+  async function saveInfectionLog() {
+    if (!selectedEpisode || !selectedPatient) {
+      setStatusMessage('Choose an episode before adding an infection log.')
+      return
+    }
+
+    const payload = {
+      patient_id: selectedPatient.id,
+      infection_type: infectionForm.infection_type,
+      identified_at: infectionForm.identified_at ? toApiDateTime(infectionForm.identified_at) : '',
+      source: infectionForm.source.trim(),
+      intervention_summary: infectionForm.intervention_summary.trim(),
+      physician_notified: infectionForm.physician_notified === 'yes',
+      qapi_linked: infectionForm.qapi_linked === 'yes',
+      status: infectionForm.status,
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addEpisodeInfection(token, selectedEpisode.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Infection log recorded.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const infection: InfectionLog = {
+      id: dataset.infectionLogs.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      episode_id: selectedEpisode.id,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, infectionLogs: [infection, ...current.infectionLogs] }))
+    setStatusMessage('Infection log recorded in demo mode.')
+  }
+
+  async function saveAuthorization() {
+    if (!selectedEpisode) {
+      setStatusMessage('Choose an episode before adding authorization.')
+      return
+    }
+
+    const payload = {
+      payer_type: authorizationForm.payer_type,
+      authorization_number: authorizationForm.authorization_number.trim(),
+      authorized_visits: Number(authorizationForm.authorized_visits || '0'),
+      used_visits: Number(authorizationForm.used_visits || '0'),
+      effective_date: authorizationForm.effective_date,
+      expiration_date: authorizationForm.expiration_date,
+      status: authorizationForm.status,
+      verification_notes: authorizationForm.verification_notes.trim(),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addEpisodeAuthorization(token, selectedEpisode.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Authorization saved.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const authorization: PayerAuthorization = {
+      id: dataset.payerAuthorizations.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      episode_id: selectedEpisode.id,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, payerAuthorizations: [authorization, ...current.payerAuthorizations] }))
+    setStatusMessage('Authorization saved in demo mode.')
+  }
+
+  async function saveEligibilityCheck() {
+    if (!selectedEpisode || !selectedPatient) {
+      setStatusMessage('Choose an episode before adding eligibility.')
+      return
+    }
+
+    const payload = {
+      patient_id: selectedPatient.id,
+      payer_type: eligibilityForm.payer_type,
+      check_status: eligibilityForm.check_status,
+      checked_at: eligibilityForm.checked_at ? toApiDateTime(eligibilityForm.checked_at) : '',
+      coverage_summary: eligibilityForm.coverage_summary.trim(),
+      response_reference: eligibilityForm.response_reference.trim(),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addEpisodeEligibilityCheck(token, selectedEpisode.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Eligibility check saved.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const check = {
+      id: dataset.eligibilityChecks.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      episode_id: selectedEpisode.id,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, eligibilityChecks: [check, ...current.eligibilityChecks] }))
+    setStatusMessage('Eligibility check saved in demo mode.')
+  }
+
+  async function saveDmeSupplyOrder() {
+    if (!selectedEpisode) {
+      setStatusMessage('Choose an episode before adding DME or supplies.')
+      return
+    }
+
+    const payload = {
+      item_name: dmeSupplyForm.item_name.trim(),
+      order_type: dmeSupplyForm.order_type,
+      status: dmeSupplyForm.status,
+      ordered_at: dmeSupplyForm.ordered_at ? toApiDateTime(dmeSupplyForm.ordered_at) : '',
+      delivered_at: dmeSupplyForm.delivered_at ? toApiDateTime(dmeSupplyForm.delivered_at) : '',
+      usage_documented: dmeSupplyForm.usage_documented === 'yes',
+      plan_of_care_linked: dmeSupplyForm.plan_of_care_linked === 'yes',
+      billing_relevance: dmeSupplyForm.billing_relevance.trim(),
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addEpisodeDmeSupplyOrder(token, selectedEpisode.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('DME/supply order saved.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const order: DmeSupplyOrder = {
+      id: dataset.dmeSupplyOrders.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      episode_id: selectedEpisode.id,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, dmeSupplyOrders: [order, ...current.dmeSupplyOrders] }))
+    setStatusMessage('DME/supply order saved in demo mode.')
+  }
+
+  async function saveCaseConference() {
+    if (!selectedEpisode) {
+      setStatusMessage('Choose an episode before adding a case conference.')
+      return
+    }
+
+    const payload = {
+      conference_date: caseConferenceForm.conference_date ? toApiDateTime(caseConferenceForm.conference_date) : '',
+      participants: caseConferenceForm.participants.trim(),
+      decisions: caseConferenceForm.decisions.trim(),
+      follow_up_owner: caseConferenceForm.follow_up_owner.trim(),
+      follow_up_due_at: caseConferenceForm.follow_up_due_at ? toApiDateTime(caseConferenceForm.follow_up_due_at) : '',
+      cadence: caseConferenceForm.cadence,
+      status: caseConferenceForm.status,
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addEpisodeCaseConference(token, selectedEpisode.id, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Case conference saved.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const conference: CaseConference = {
+      id: dataset.caseConferences.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      episode_id: selectedEpisode.id,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, caseConferences: [conference, ...current.caseConferences] }))
+    setStatusMessage('Case conference saved in demo mode.')
+  }
+
+  async function saveClaimTransaction() {
+    const claimId = Number(claimTransactionForm.claim_id || dataset.claims[0]?.id || 0)
+    const claim = dataset.claims.find((item) => item.id === claimId)
+    const payload = {
+      claim_id: claimId || undefined,
+      episode_id: claim?.episode_id ?? selectedEpisode?.id,
+      transaction_type: claimTransactionForm.transaction_type,
+      transaction_status: claimTransactionForm.transaction_status,
+      payer_control_number: claimTransactionForm.payer_control_number.trim(),
+      payload_summary: claimTransactionForm.payload_summary.trim(),
+      response_summary: claimTransactionForm.response_summary.trim(),
+      transmitted_at: claimTransactionForm.transmitted_at ? toApiDateTime(claimTransactionForm.transmitted_at) : '',
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addClaimTransaction(token, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Claim transaction saved.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const transaction: ClaimTransaction = {
+      id: dataset.claimTransactions.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, claimTransactions: [transaction, ...current.claimTransactions] }))
+    setStatusMessage('Claim transaction saved in demo mode.')
+  }
+
+  async function saveRemittancePosting() {
+    const claimId = Number(remittanceForm.claim_id || dataset.claims[0]?.id || 0)
+    const claim = dataset.claims.find((item) => item.id === claimId)
+    const payload = {
+      claim_id: claimId || undefined,
+      episode_id: claim?.episode_id ?? selectedEpisode?.id,
+      era_reference: remittanceForm.era_reference.trim(),
+      payment_amount: Number(remittanceForm.payment_amount || '0'),
+      adjustment_amount: Number(remittanceForm.adjustment_amount || '0'),
+      reason_codes: remittanceForm.reason_codes.trim(),
+      posted_at: remittanceForm.posted_at ? toApiDateTime(remittanceForm.posted_at) : '',
+      reconciliation_status: remittanceForm.reconciliation_status,
+    }
+
+    if (mode === 'api' && token) {
+      try {
+        await api.addRemittancePosting(token, payload)
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Remittance posting saved.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const posting: RemittancePosting = {
+      id: dataset.remittancePostings.reduce((max, item) => Math.max(max, item.id), 0) + 1,
+      ...payload,
+    }
+    setDataset((current) => recalculate({ ...current, remittancePostings: [posting, ...current.remittancePostings] }))
+    setStatusMessage('Remittance posting saved in demo mode.')
+  }
+
+  async function captureSurveyReadinessAction() {
+    if (mode === 'api' && token) {
+      try {
+        await api.captureSurveyReadiness(token, 'current')
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Survey-readiness snapshot captured.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    const snapshot = {
+      id: dataset.surveyReadinessSummary.history.length + 1,
+      period_key: dataset.surveyReadinessSummary.period_key,
+      category_scores: dataset.surveyReadinessSummary.category_scores,
+      open_counts: dataset.surveyReadinessSummary.open_counts,
+      generated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+    }
+    const summary: SurveyReadinessSummary = {
+      ...dataset.surveyReadinessSummary,
+      generated_at: snapshot.generated_at,
+      history: [...dataset.surveyReadinessSummary.history, snapshot],
+    }
+    setDataset((current) => recalculate({ ...current, surveyReadinessSummary: summary }))
+    setStatusMessage('Survey-readiness snapshot captured in demo mode.')
+  }
+
+  async function captureQualityMetricsAction() {
+    if (mode === 'api' && token) {
+      try {
+        await api.captureQualityMetrics(token, adminReportPeriod === 'last_7' ? 'last_7' : adminReportPeriod === 'last_30' ? 'last_30' : 'all')
+        await hydrateFromApi(token, user!)
+        setStatusMessage('Quality metrics captured.')
+      } catch (error) {
+        setStatusMessage((error as Error).message)
+      }
+      return
+    }
+
+    setDataset((current) =>
+      recalculate({
+        ...current,
+        qualityMetricsSummary: {
+          ...current.qualityMetricsSummary,
+          history: [
+            ...current.qualityMetricsSummary.history,
+            ...current.qualityMetricsSummary.metrics.map((metric, index) => ({
+              id: current.qualityMetricsSummary.history.length + index + 1,
+              metric_key: metric.key,
+              metric_label: metric.label,
+              period_key: current.qualityMetricsSummary.period_key,
+              score: metric.score,
+              numerator: metric.numerator,
+              denominator: metric.denominator,
+              trend_value: metric.trend_value,
+              notes: metric.note,
+              captured_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
+            })),
+          ],
+        },
+      }),
+    )
+    setStatusMessage('Quality metrics captured in demo mode.')
+  }
+
   function runBillingFollowUpAction(item: BillingFollowUpItem) {
     const action = item.nextAction
 
@@ -3540,6 +4897,62 @@ function App() {
     () => dataset.patients.find((patient) => patient.id === selectedEpisode?.patient_id) ?? dataset.patients[0],
     [dataset.patients, selectedEpisode?.patient_id],
   )
+  const selectedPatientComplianceDocuments = useMemo(
+    () => (selectedPatient ? dataset.patientComplianceDocuments.filter((document) => document.patient_id === selectedPatient.id) : []),
+    [dataset.patientComplianceDocuments, selectedPatient],
+  )
+  const selectedPatientNotices = useMemo(
+    () => (selectedPatient ? dataset.patientNotices.filter((notice) => notice.patient_id === selectedPatient.id) : []),
+    [dataset.patientNotices, selectedPatient],
+  )
+  const selectedPatientMedications = useMemo(
+    () => (selectedPatient ? dataset.patientMedications.filter((medication) => medication.patient_id === selectedPatient.id) : []),
+    [dataset.patientMedications, selectedPatient],
+  )
+  const selectedPatientAllergies = useMemo(
+    () => (selectedPatient ? dataset.patientAllergies.filter((allergy) => allergy.patient_id === selectedPatient.id) : []),
+    [dataset.patientAllergies, selectedPatient],
+  )
+  const selectedEpisodeVerbalOrders = useMemo(
+    () => (selectedEpisode ? dataset.verbalOrders.filter((order) => order.episode_id === selectedEpisode.id) : []),
+    [dataset.verbalOrders, selectedEpisode],
+  )
+  const selectedEpisodeAideSupervision = useMemo(
+    () => (selectedEpisode ? dataset.aideSupervisionEvents.filter((event) => event.episode_id === selectedEpisode.id) : []),
+    [dataset.aideSupervisionEvents, selectedEpisode],
+  )
+  const selectedEpisodeIncidents = useMemo(
+    () => (selectedEpisode ? dataset.incidentReports.filter((incident) => incident.episode_id === selectedEpisode.id) : []),
+    [dataset.incidentReports, selectedEpisode],
+  )
+  const selectedEpisodeInfections = useMemo(
+    () => (selectedEpisode ? dataset.infectionLogs.filter((infection) => infection.episode_id === selectedEpisode.id) : []),
+    [dataset.infectionLogs, selectedEpisode],
+  )
+  const selectedEpisodeAuthorizations = useMemo(
+    () => (selectedEpisode ? dataset.payerAuthorizations.filter((authorization) => authorization.episode_id === selectedEpisode.id) : []),
+    [dataset.payerAuthorizations, selectedEpisode],
+  )
+  const selectedEpisodeEligibilityChecks = useMemo(
+    () => (selectedEpisode ? dataset.eligibilityChecks.filter((check) => check.episode_id === selectedEpisode.id) : []),
+    [dataset.eligibilityChecks, selectedEpisode],
+  )
+  const selectedEpisodeDmeSupplyOrders = useMemo(
+    () => (selectedEpisode ? dataset.dmeSupplyOrders.filter((order) => order.episode_id === selectedEpisode.id) : []),
+    [dataset.dmeSupplyOrders, selectedEpisode],
+  )
+  const selectedEpisodeCaseConferences = useMemo(
+    () => (selectedEpisode ? dataset.caseConferences.filter((conference) => conference.episode_id === selectedEpisode.id) : []),
+    [dataset.caseConferences, selectedEpisode],
+  )
+  const selectedEpisodeClaimTransactions = useMemo(
+    () => (selectedEpisode ? dataset.claimTransactions.filter((transaction) => transaction.episode_id === selectedEpisode.id) : []),
+    [dataset.claimTransactions, selectedEpisode],
+  )
+  const selectedEpisodeRemittancePostings = useMemo(
+    () => (selectedEpisode ? dataset.remittancePostings.filter((posting) => posting.episode_id === selectedEpisode.id) : []),
+    [dataset.remittancePostings, selectedEpisode],
+  )
   const clinicianVisits = useMemo(() => dataset.visits.slice().sort((a, b) => a.scheduled_start.localeCompare(b.scheduled_start)), [dataset.visits])
   const selectedClinicianEpisode = useMemo(
     () => dataset.episodes.find((episode) => episode.id === Number(visitForm.episode_id)) ?? selectedEpisode,
@@ -3553,8 +4966,13 @@ function App() {
     () => (selectedEpisode ? buildDemoEpisodeReviewSummary(selectedEpisode, dataset) : null),
     [dataset, selectedEpisode],
   )
+  const demoEpisodeInsights = useMemo(
+    () => (selectedEpisode ? buildDemoEpisodeInsights(selectedEpisode, dataset) : null),
+    [dataset, selectedEpisode],
+  )
   const episodeReadiness = mode === 'api' ? apiEpisodeReadiness : demoEpisodeReadiness
   const episodeReviewSummary = mode === 'api' ? apiEpisodeReviewSummary : demoEpisodeReviewSummary
+  const episodeInsights = mode === 'api' ? apiEpisodeInsights : demoEpisodeInsights
   const episodeNextActionRecommendation = useMemo(
     () => (selectedEpisode && episodeReviewSummary ? recommendEpisodeNextAction(episodeReviewSummary) : null),
     [episodeReviewSummary, selectedEpisode],
@@ -3594,6 +5012,33 @@ function App() {
             )
         : [],
     [dataset.physicianOrders, selectedEpisode],
+  )
+  const selectedEpisodeOasisSubmissions = useMemo(
+    () =>
+      selectedEpisode
+        ? dataset.oasisSubmissions
+            .filter((item) => item.episode_id === selectedEpisode.id)
+            .sort((left, right) => `${right.submitted_at ?? right.acknowledged_at ?? ''}`.localeCompare(`${left.submitted_at ?? left.acknowledged_at ?? ''}`))
+        : [],
+    [dataset.oasisSubmissions, selectedEpisode],
+  )
+  const selectedEpisodePlansOfCare = useMemo(
+    () =>
+      selectedEpisode
+        ? dataset.planOfCares
+            .filter((item) => item.episode_id === selectedEpisode.id)
+            .sort((left, right) => right.version_number - left.version_number)
+        : [],
+    [dataset.planOfCares, selectedEpisode],
+  )
+  const selectedEpisodeCommunicationEntries = useMemo(
+    () =>
+      selectedEpisode
+        ? dataset.communicationLogEntries
+            .filter((item) => item.episode_id === selectedEpisode.id)
+            .sort((left, right) => `${right.created ?? ''}`.localeCompare(`${left.created ?? ''}`))
+        : [],
+    [dataset.communicationLogEntries, selectedEpisode],
   )
   const claimReadinessQueue = useMemo(() => buildClaimReadinessQueue(dataset), [dataset])
   const claimStatusLanes = useMemo(() => buildClaimStatusLanes(claimReadinessQueue), [claimReadinessQueue])
@@ -3687,13 +5132,15 @@ function App() {
     let cancelled = false
     void (async () => {
       try {
-        const [readinessResponse, reviewSummaryResponse] = await Promise.all([
+        const [readinessResponse, reviewSummaryResponse, insightsResponse] = await Promise.all([
           api.episodeReadiness(token, selectedEpisodeId),
           api.episodeReviewSummary(token, selectedEpisodeId),
+          api.episodeInsights(token, selectedEpisodeId),
         ])
         if (!cancelled) {
           setApiEpisodeReadiness(readinessResponse.data ?? null)
           setApiEpisodeReviewSummary(reviewSummaryResponse.data ?? null)
+          setApiEpisodeInsights(insightsResponse.data ?? null)
         }
       } catch (error) {
         if (!cancelled) {
@@ -3941,6 +5388,158 @@ function App() {
                 ))}
               </div>
             </Panel>
+            <div className="content-grid">
+              <Panel
+                title="Patient Compliance Packet"
+                subtitle="Track consent, HIPAA, patient rights, advance directives, emergency preparedness, grievances, and beneficiary notices."
+                tone="soft"
+              >
+                {selectedPatient ? (
+                  <div className="stack">
+                    <div className="episode-focus-banner">
+                      <div>
+                        <strong>{nameForPatient(selectedPatient)}</strong>
+                        <p className="muted">Compliance packet and notice inventory for the selected chart.</p>
+                      </div>
+                      <div className="row-actions wrap">
+                        <span className="pill neutral">{selectedPatientComplianceDocuments.length} documents</span>
+                        <span className="pill neutral">{selectedPatientNotices.length} notices</span>
+                      </div>
+                    </div>
+                    {selectedPatientComplianceDocuments.map((document) => (
+                      <div key={`compliance-document-${document.id}`} className="action-row">
+                        <div>
+                          <strong>{labelizeValue(document.document_type)}</strong>
+                          <p className="muted">
+                            {labelizeValue(document.status)} · {document.signed_at ?? 'Signature pending'} · {document.delivery_method ?? 'Delivery not captured'}
+                          </p>
+                          {document.notes ? <p className="muted">{document.notes}</p> : null}
+                        </div>
+                        <span className={`pill ${document.status === 'signed' || document.status === 'reviewed' ? 'neutral' : 'warn'}`}>
+                          {labelizeValue(document.status)}
+                        </span>
+                      </div>
+                    ))}
+                    {selectedPatientNotices.map((notice) => (
+                      <div key={`patient-notice-${notice.id}`} className="action-row">
+                        <div>
+                          <strong>{notice.notice_type}</strong>
+                          <p className="muted">
+                            {labelizeValue(notice.status)} · Delivered: {notice.delivered_at ?? 'Not delivered'} · Signed: {notice.signed_at ?? 'Not signed'}
+                          </p>
+                          <p className="muted">{notice.reason ?? 'No notice reason recorded.'}</p>
+                          {notice.billing_impact ? <p className="muted">Billing impact: {notice.billing_impact}</p> : null}
+                        </div>
+                        <span className={`pill ${notice.status.includes('signed') || notice.status === 'not_due' ? 'neutral' : 'warn'}`}>
+                          {labelizeValue(notice.status)}
+                        </span>
+                      </div>
+                    ))}
+                    <FormGrid>
+                      <Input label="Document type" value={complianceDocumentForm.document_type} onChange={(value) => setComplianceDocumentForm((current) => ({ ...current, document_type: value }))} />
+                      <Input label="Status" value={complianceDocumentForm.status} onChange={(value) => setComplianceDocumentForm((current) => ({ ...current, status: value }))} />
+                      <Input label="Delivery method" value={complianceDocumentForm.delivery_method} onChange={(value) => setComplianceDocumentForm((current) => ({ ...current, delivery_method: value }))} />
+                      <Input label="Signed at" type="datetime-local" value={complianceDocumentForm.signed_at} onChange={(value) => setComplianceDocumentForm((current) => ({ ...current, signed_at: value }))} />
+                      <Input label="Notes" value={complianceDocumentForm.notes} onChange={(value) => setComplianceDocumentForm((current) => ({ ...current, notes: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveComplianceDocument()}>
+                      Add compliance document
+                    </button>
+                    <FormGrid>
+                      <Input label="Notice type" value={patientNoticeForm.notice_type} onChange={(value) => setPatientNoticeForm((current) => ({ ...current, notice_type: value }))} />
+                      <Input label="Notice status" value={patientNoticeForm.status} onChange={(value) => setPatientNoticeForm((current) => ({ ...current, status: value }))} />
+                      <Input label="Reason" value={patientNoticeForm.reason} onChange={(value) => setPatientNoticeForm((current) => ({ ...current, reason: value }))} />
+                      <Input label="Billing impact" value={patientNoticeForm.billing_impact} onChange={(value) => setPatientNoticeForm((current) => ({ ...current, billing_impact: value }))} />
+                      <Input label="Delivered at" type="datetime-local" value={patientNoticeForm.delivered_at} onChange={(value) => setPatientNoticeForm((current) => ({ ...current, delivered_at: value }))} />
+                      <Input label="Signed at" type="datetime-local" value={patientNoticeForm.signed_at} onChange={(value) => setPatientNoticeForm((current) => ({ ...current, signed_at: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void savePatientNotice()}>
+                      Add notice
+                    </button>
+                  </div>
+                ) : (
+                  <EmptyState text="Add a patient before building the compliance packet." />
+                )}
+              </Panel>
+              <Panel
+                title="Medication and Allergy Profile"
+                subtitle="Maintain longitudinal medication reconciliation, high-risk teaching, medication changes, and allergy verification."
+                tone="soft"
+              >
+                {selectedPatient ? (
+                  <div className="stack">
+                    {selectedPatientMedications.map((medication) => (
+                      <div key={`medication-${medication.id}`} className="action-row">
+                        <div>
+                          <strong>{medication.medication_name}</strong>
+                          <p className="muted">
+                            {[medication.dosage, medication.route, medication.frequency].filter(Boolean).join(' · ') || 'Dose/frequency not captured'}
+                          </p>
+                          <p className="muted">
+                            {labelizeValue(medication.status)} · Reconciled: {medication.reconciled_at ?? 'Pending'} · Teaching: {medication.teaching_completed ? 'Done' : 'Needed'}
+                          </p>
+                          {medication.change_reason ? <p className="muted">{medication.change_reason}</p> : null}
+                        </div>
+                        <span className={`pill ${medication.high_risk && !medication.teaching_completed ? 'warn' : 'neutral'}`}>
+                          {medication.high_risk ? 'High risk' : 'Routine'}
+                        </span>
+                      </div>
+                    ))}
+                    {selectedPatientAllergies.map((allergy) => (
+                      <div key={`allergy-${allergy.id}`} className="action-row">
+                        <div>
+                          <strong>{allergy.allergen}</strong>
+                          <p className="muted">
+                            {allergy.reaction ?? 'Reaction not captured'} · {labelizeValue(allergy.severity ?? 'severity pending')} · Verified {allergy.verified_at ?? 'Pending'}
+                          </p>
+                        </div>
+                        <span className="pill warn">Allergy</span>
+                      </div>
+                    ))}
+                    <FormGrid>
+                      <Input label="Medication" value={medicationForm.medication_name} onChange={(value) => setMedicationForm((current) => ({ ...current, medication_name: value }))} />
+                      <Input label="Dosage" value={medicationForm.dosage} onChange={(value) => setMedicationForm((current) => ({ ...current, dosage: value }))} />
+                      <Input label="Route" value={medicationForm.route} onChange={(value) => setMedicationForm((current) => ({ ...current, route: value }))} />
+                      <Input label="Frequency" value={medicationForm.frequency} onChange={(value) => setMedicationForm((current) => ({ ...current, frequency: value }))} />
+                      <Select
+                        label="High risk"
+                        value={medicationForm.high_risk}
+                        onChange={(value) => setMedicationForm((current) => ({ ...current, high_risk: value }))}
+                        options={[
+                          { label: 'Yes', value: 'yes' },
+                          { label: 'No', value: 'no' },
+                        ]}
+                      />
+                      <Select
+                        label="Teaching complete"
+                        value={medicationForm.teaching_completed}
+                        onChange={(value) => setMedicationForm((current) => ({ ...current, teaching_completed: value }))}
+                        options={[
+                          { label: 'Yes', value: 'yes' },
+                          { label: 'No', value: 'no' },
+                        ]}
+                      />
+                      <Input label="Reconciled at" type="datetime-local" value={medicationForm.reconciled_at} onChange={(value) => setMedicationForm((current) => ({ ...current, reconciled_at: value }))} />
+                      <Input label="Change reason" value={medicationForm.change_reason} onChange={(value) => setMedicationForm((current) => ({ ...current, change_reason: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveMedication()}>
+                      Add medication
+                    </button>
+                    <FormGrid>
+                      <Input label="Allergen" value={allergyForm.allergen} onChange={(value) => setAllergyForm((current) => ({ ...current, allergen: value }))} />
+                      <Input label="Reaction" value={allergyForm.reaction} onChange={(value) => setAllergyForm((current) => ({ ...current, reaction: value }))} />
+                      <Input label="Severity" value={allergyForm.severity} onChange={(value) => setAllergyForm((current) => ({ ...current, severity: value }))} />
+                      <Input label="Verified at" type="datetime-local" value={allergyForm.verified_at} onChange={(value) => setAllergyForm((current) => ({ ...current, verified_at: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveAllergy()}>
+                      Add allergy
+                    </button>
+                  </div>
+                ) : (
+                  <EmptyState text="Add a patient before building the medication and allergy profile." />
+                )}
+              </Panel>
+            </div>
             <Modal
               open={patientModalOpen}
               title={editingPatientId !== null ? 'Edit patient' : 'Add patient'}
@@ -4132,6 +5731,98 @@ function App() {
                     </div>
                   </div>
                 ))}
+              </div>
+            </Panel>
+            <Panel title="eFax / Referral Inbox" subtitle="Capture inbound referral packets, classify them, and convert them into live referral work.">
+              <div className="content-grid">
+                <div className="stack">
+                  {dataset.faxMessages.length > 0 ? (
+                    dataset.faxMessages.map((fax) => (
+                      <div key={fax.id} className="action-row">
+                        <div>
+                          <strong>{fax.source_name}</strong>
+                          <p className="muted">
+                            {fax.subject ?? 'Referral packet'} · {fax.packet_type} · Received {fax.received_at}
+                          </p>
+                          <p className="muted">
+                            Status: {labelizeValue(fax.routing_status)} · Linked docs: {fax.linked_document_count}
+                          </p>
+                          {fax.route_note ? <p className="muted">{fax.route_note}</p> : null}
+                        </div>
+                        <div className="row-actions wrap">
+                          <span className={`pill ${fax.routing_status === 'new' ? 'warn' : 'neutral'}`}>{labelizeValue(fax.routing_status)}</span>
+                          <button
+                            className="secondary-button"
+                            type="button"
+                            onClick={() =>
+                              setFaxRoutingForm((current) => ({
+                                ...current,
+                                fax_id: String(fax.id),
+                                route_note: fax.route_note ?? '',
+                              }))
+                            }
+                          >
+                            Route packet
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <EmptyState text="No inbound fax packets have been captured yet." />
+                  )}
+                </div>
+                <div className="stack">
+                  <strong>Add fax packet</strong>
+                  <FormGrid>
+                    <Input label="Source name" value={faxMessageForm.source_name} onChange={(value) => setFaxMessageForm((current) => ({ ...current, source_name: value }))} />
+                    <Input label="From number" value={faxMessageForm.from_number} onChange={(value) => setFaxMessageForm((current) => ({ ...current, from_number: formatUsPhone(value) }))} />
+                    <Input label="Subject" value={faxMessageForm.subject} onChange={(value) => setFaxMessageForm((current) => ({ ...current, subject: value }))} />
+                    <Input label="Packet type" value={faxMessageForm.packet_type} onChange={(value) => setFaxMessageForm((current) => ({ ...current, packet_type: value }))} />
+                    <Input label="Received at" type="datetime-local" value={faxMessageForm.received_at} onChange={(value) => setFaxMessageForm((current) => ({ ...current, received_at: value }))} />
+                    <Input label="Linked document count" value={faxMessageForm.linked_document_count} onChange={(value) => setFaxMessageForm((current) => ({ ...current, linked_document_count: value }))} />
+                    <Input label="Attachment note" value={faxMessageForm.attachment_note} onChange={(value) => setFaxMessageForm((current) => ({ ...current, attachment_note: value }))} />
+                  </FormGrid>
+                  <button className="primary-button" type="button" onClick={() => void saveFaxMessage()}>
+                    Add fax packet
+                  </button>
+                  <strong>Route selected fax packet</strong>
+                  <FormGrid>
+                    <Select
+                      label="Fax packet"
+                      value={faxRoutingForm.fax_id}
+                      onChange={(value) => setFaxRoutingForm((current) => ({ ...current, fax_id: value }))}
+                      options={[
+                        { label: 'Choose a packet', value: '' },
+                        ...dataset.faxMessages.map((fax) => ({ label: `${fax.source_name} · ${labelizeValue(fax.routing_status)}`, value: String(fax.id) })),
+                      ]}
+                    />
+                    <Input label="Routing status" value={faxRoutingForm.routing_status} onChange={(value) => setFaxRoutingForm((current) => ({ ...current, routing_status: value }))} />
+                    <Select
+                      label="Create referral"
+                      value={faxRoutingForm.create_referral}
+                      onChange={(value) => setFaxRoutingForm((current) => ({ ...current, create_referral: value }))}
+                      options={[
+                        { label: 'No', value: 'no' },
+                        { label: 'Yes', value: 'yes' },
+                      ]}
+                    />
+                    <Select
+                      label="Patient"
+                      value={faxRoutingForm.patient_id}
+                      onChange={(value) => setFaxRoutingForm((current) => ({ ...current, patient_id: value }))}
+                      options={dataset.patients.map((patient) => ({ label: nameForPatient(patient), value: String(patient.id) }))}
+                    />
+                    <Input label="Admission source" value={faxRoutingForm.admission_source} onChange={(value) => setFaxRoutingForm((current) => ({ ...current, admission_source: value }))} />
+                    <Input label="Payer" value={faxRoutingForm.payer_type} onChange={(value) => setFaxRoutingForm((current) => ({ ...current, payer_type: value }))} />
+                    <Input label="Diagnosis" value={faxRoutingForm.primary_diagnosis} onChange={(value) => setFaxRoutingForm((current) => ({ ...current, primary_diagnosis: value }))} />
+                    <Input label="Planned SOC" type="date" value={faxRoutingForm.planned_soc_date} onChange={(value) => setFaxRoutingForm((current) => ({ ...current, planned_soc_date: value }))} />
+                    <Input label="Requested disciplines" value={faxRoutingForm.requested_disciplines} onChange={(value) => setFaxRoutingForm((current) => ({ ...current, requested_disciplines: value }))} />
+                    <Input label="Route note" value={faxRoutingForm.route_note} onChange={(value) => setFaxRoutingForm((current) => ({ ...current, route_note: value }))} />
+                  </FormGrid>
+                  <button className="secondary-button" type="button" onClick={() => void routeFaxMessageAction()}>
+                    Route fax packet
+                  </button>
+                </div>
               </div>
             </Panel>
             <Modal
@@ -4411,6 +6102,51 @@ function App() {
               </div>
             </Panel>
             )}
+            {episodeWorkspaceTab === 'clinical' && (
+            <Panel
+              title="Clinical Decision Support"
+              subtitle="Use demo-ready alerts and integrity scoring to spot risky charting gaps before QA or billing finds them later."
+              tone="soft"
+            >
+              {selectedEpisode && episodeInsights ? (
+                <div className="detail-stack">
+                  <KeyValue label="Assessment integrity" value={`${episodeInsights.documentation_integrity.assessment_score}%`} />
+                  <KeyValue label="Visit integrity" value={`${episodeInsights.documentation_integrity.visit_score}%`} />
+                  <KeyValue label="Overall score" value={`${episodeInsights.documentation_integrity.overall_score}%`} />
+                  <div className="stack episode-review-section">
+                    <strong>Clinical alerts</strong>
+                    {episodeInsights.clinical_decision_support.length > 0 ? (
+                      episodeInsights.clinical_decision_support.map((alert, index) => (
+                        <div key={`${alert.summary}-${index}`} className="timeline-step">
+                          <strong>{labelizeValue(alert.severity)}</strong>: {alert.summary} Next: {alert.resolution_hint}
+                        </div>
+                      ))
+                    ) : (
+                      <EmptyState text="No clinical decision-support alerts are currently flagged for this episode." />
+                    )}
+                  </div>
+                  <div className="stack episode-review-section">
+                    <strong>Integrity blockers</strong>
+                    {episodeInsights.documentation_integrity.blockers.length > 0 ? (
+                      episodeInsights.documentation_integrity.blockers.map((blocker) => <div key={blocker} className="timeline-step">{blocker}</div>)
+                    ) : (
+                      <EmptyState text="No documentation-integrity blockers are currently preventing a clean release." />
+                    )}
+                  </div>
+                  <div className="stack episode-review-section">
+                    <strong>Warnings</strong>
+                    {episodeInsights.documentation_integrity.warnings.length > 0 ? (
+                      episodeInsights.documentation_integrity.warnings.map((warning) => <div key={warning} className="timeline-step">{warning}</div>)
+                    ) : (
+                      <EmptyState text="No additional integrity warnings are currently surfaced." />
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <EmptyState text="Choose an episode to load decision-support and documentation-integrity details." />
+              )}
+            </Panel>
+            )}
             {episodeWorkspaceTab === 'review' && (
             <Panel title="Episode Board" subtitle="NOA timing, PDGM grouping, and certification periods." tone="soft" density="compact">
               <div className="stack">
@@ -4655,6 +6391,58 @@ function App() {
               )}
             </Panel>
             )}
+            {episodeWorkspaceTab === 'admission' && (
+            <Panel
+              title="Care Coordination and Communication"
+              subtitle="Track provider, caregiver, and internal handoff communication directly on the episode and assign follow-up ownership."
+              tone="soft"
+            >
+              {selectedEpisode ? (
+                <div className="content-grid">
+                  <div className="stack">
+                    {selectedEpisodeCommunicationEntries.length > 0 ? (
+                      selectedEpisodeCommunicationEntries.map((entry) => (
+                        <div key={entry.id} className="action-row">
+                          <div>
+                            <strong>{entry.contact_name}</strong>
+                            <p className="muted">
+                              {entry.contact_role ?? 'Contact'} · {labelizeValue(entry.method)} · {entry.topic}
+                            </p>
+                            {entry.outcome ? <p className="muted">{entry.outcome}</p> : null}
+                            <p className="muted">
+                              Follow-up: {entry.follow_up_owner ?? 'None assigned'} · {entry.follow_up_due_at ?? 'No due date'}
+                            </p>
+                          </div>
+                          <div className="row-actions wrap">
+                            <span className={`pill ${entry.status === 'follow_up_due' ? 'warn' : 'neutral'}`}>{labelizeValue(entry.status)}</span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <EmptyState text="No communication log entries are recorded for this episode yet." />
+                    )}
+                  </div>
+                  <div className="stack">
+                    <strong>Add communication entry</strong>
+                    <FormGrid>
+                      <Input label="Contact name" value={communicationLogForm.contact_name} onChange={(value) => setCommunicationLogForm((current) => ({ ...current, contact_name: value }))} />
+                      <Input label="Contact role" value={communicationLogForm.contact_role} onChange={(value) => setCommunicationLogForm((current) => ({ ...current, contact_role: value }))} />
+                      <Input label="Method" value={communicationLogForm.method} onChange={(value) => setCommunicationLogForm((current) => ({ ...current, method: value }))} />
+                      <Input label="Topic" value={communicationLogForm.topic} onChange={(value) => setCommunicationLogForm((current) => ({ ...current, topic: value }))} />
+                      <Input label="Outcome" value={communicationLogForm.outcome} onChange={(value) => setCommunicationLogForm((current) => ({ ...current, outcome: value }))} />
+                      <Input label="Follow-up owner" value={communicationLogForm.follow_up_owner} onChange={(value) => setCommunicationLogForm((current) => ({ ...current, follow_up_owner: value }))} />
+                      <Input label="Follow-up due" type="datetime-local" value={communicationLogForm.follow_up_due_at} onChange={(value) => setCommunicationLogForm((current) => ({ ...current, follow_up_due_at: value }))} />
+                    </FormGrid>
+                    <button className="primary-button" type="button" onClick={() => void saveCommunicationLogEntry()}>
+                      Log communication
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState text="Choose an episode to manage care-coordination communication." />
+              )}
+            </Panel>
+            )}
             {episodeWorkspaceTab === 'review' && (
             <Panel
               title="Episode Readiness"
@@ -4699,6 +6487,255 @@ function App() {
                 </div>
               ) : (
                 <EmptyState text="Choose an episode to load readiness details." />
+              )}
+            </Panel>
+            )}
+            {episodeWorkspaceTab === 'review' && (
+            <Panel
+              title="Orders, Aide Supervision, and Event Controls"
+              subtitle="Manage verbal orders, aide supervision, incidents, and infection surveillance before QA release or billing."
+              tone="soft"
+            >
+              {selectedEpisode ? (
+                <div className="content-grid">
+                  <div className="stack">
+                    <strong>Verbal and oral orders</strong>
+                    {selectedEpisodeVerbalOrders.length > 0 ? (
+                      selectedEpisodeVerbalOrders.map((order) => (
+                        <div key={`verbal-order-${order.id}`} className="action-row">
+                          <div>
+                            <strong>{order.ordered_service ?? 'Verbal order'}</strong>
+                            <p className="muted">
+                              {order.physician_name} · {labelizeValue(order.status)} · Received {order.received_at ?? 'Pending'}
+                            </p>
+                            <p className="muted">
+                              Read-back: {order.read_back_completed ? 'Completed' : 'Pending'} · Signature: {order.physician_signed_at ?? 'Pending'}
+                            </p>
+                            <p className="muted">{order.order_summary}</p>
+                          </div>
+                          <span className={`pill ${order.status === 'signed' ? 'neutral' : 'warn'}`}>{labelizeValue(order.status)}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <EmptyState text="No verbal orders are tracked for this episode." />
+                    )}
+                    <FormGrid>
+                      <Input label="Physician" value={verbalOrderForm.physician_name} onChange={(value) => setVerbalOrderForm((current) => ({ ...current, physician_name: value }))} />
+                      <Input label="Source" value={verbalOrderForm.order_source} onChange={(value) => setVerbalOrderForm((current) => ({ ...current, order_source: value }))} />
+                      <Input label="Ordered service" value={verbalOrderForm.ordered_service} onChange={(value) => setVerbalOrderForm((current) => ({ ...current, ordered_service: value }))} />
+                      <Input label="Received by" value={verbalOrderForm.received_by} onChange={(value) => setVerbalOrderForm((current) => ({ ...current, received_by: value }))} />
+                      <Input label="Received at" type="datetime-local" value={verbalOrderForm.received_at} onChange={(value) => setVerbalOrderForm((current) => ({ ...current, received_at: value }))} />
+                      <Select
+                        label="Read-back"
+                        value={verbalOrderForm.read_back_completed}
+                        onChange={(value) => setVerbalOrderForm((current) => ({ ...current, read_back_completed: value }))}
+                        options={[
+                          { label: 'Completed', value: 'yes' },
+                          { label: 'Pending', value: 'no' },
+                        ]}
+                      />
+                      <Input label="Status" value={verbalOrderForm.status} onChange={(value) => setVerbalOrderForm((current) => ({ ...current, status: value }))} />
+                      <Input label="Summary" value={verbalOrderForm.order_summary} onChange={(value) => setVerbalOrderForm((current) => ({ ...current, order_summary: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveVerbalOrder()}>
+                      Add verbal order
+                    </button>
+                    <strong>HHA supervision</strong>
+                    {selectedEpisodeAideSupervision.length > 0 ? (
+                      selectedEpisodeAideSupervision.map((event) => (
+                        <div key={`aide-supervision-${event.id}`} className="action-row">
+                          <div>
+                            <strong>{event.aide_name}</strong>
+                            <p className="muted">
+                              {event.supervising_clinician ?? 'Supervisor pending'} · {labelizeValue(event.status)} · Next due {event.next_due_at ?? 'Not scheduled'}
+                            </p>
+                            <p className="muted">{event.care_plan_tasks ?? 'Care-plan tasks not captured.'}</p>
+                          </div>
+                          <span className={`pill ${event.status === 'completed' ? 'neutral' : 'warn'}`}>{labelizeValue(event.status)}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <EmptyState text="No aide supervision events are tracked for this episode." />
+                    )}
+                    <FormGrid>
+                      <Input label="Aide" value={aideSupervisionForm.aide_name} onChange={(value) => setAideSupervisionForm((current) => ({ ...current, aide_name: value }))} />
+                      <Input label="Supervisor" value={aideSupervisionForm.supervising_clinician} onChange={(value) => setAideSupervisionForm((current) => ({ ...current, supervising_clinician: value }))} />
+                      <Input label="Supervised at" type="datetime-local" value={aideSupervisionForm.supervised_at} onChange={(value) => setAideSupervisionForm((current) => ({ ...current, supervised_at: value }))} />
+                      <Input label="Next due" type="datetime-local" value={aideSupervisionForm.next_due_at} onChange={(value) => setAideSupervisionForm((current) => ({ ...current, next_due_at: value }))} />
+                      <Input label="Care-plan tasks" value={aideSupervisionForm.care_plan_tasks} onChange={(value) => setAideSupervisionForm((current) => ({ ...current, care_plan_tasks: value }))} />
+                      <Input label="Findings" value={aideSupervisionForm.findings} onChange={(value) => setAideSupervisionForm((current) => ({ ...current, findings: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveAideSupervision()}>
+                      Record supervision
+                    </button>
+                  </div>
+                  <div className="stack">
+                    <strong>Incidents and infections</strong>
+                    {[...selectedEpisodeIncidents, ...selectedEpisodeInfections].length > 0 ? (
+                      <>
+                        {selectedEpisodeIncidents.map((incident) => (
+                          <div key={`incident-${incident.id}`} className="action-row">
+                            <div>
+                              <strong>{labelizeValue(incident.event_type)}</strong>
+                              <p className="muted">
+                                {labelizeValue(incident.severity ?? 'severity pending')} · {labelizeValue(incident.status)} · {incident.occurred_at ?? 'Date pending'}
+                              </p>
+                              <p className="muted">{incident.description ?? 'No description recorded.'}</p>
+                              <p className="muted">Follow-up: {incident.follow_up_owner ?? 'Unassigned'} · QAPI: {incident.qapi_linked ? 'Linked' : 'Not linked'}</p>
+                            </div>
+                            <span className={`pill ${incident.status === 'closed' ? 'neutral' : 'warn'}`}>{labelizeValue(incident.status)}</span>
+                          </div>
+                        ))}
+                        {selectedEpisodeInfections.map((infection) => (
+                          <div key={`infection-${infection.id}`} className="action-row">
+                            <div>
+                              <strong>{labelizeValue(infection.infection_type)}</strong>
+                              <p className="muted">
+                                {labelizeValue(infection.status)} · Physician notified: {infection.physician_notified ? 'Yes' : 'No'} · {infection.identified_at ?? 'Date pending'}
+                              </p>
+                              <p className="muted">{infection.intervention_summary ?? 'No intervention summary recorded.'}</p>
+                            </div>
+                            <span className={`pill ${infection.status === 'closed' ? 'neutral' : 'warn'}`}>{labelizeValue(infection.status)}</span>
+                          </div>
+                        ))}
+                      </>
+                    ) : (
+                      <EmptyState text="No incidents or infection logs are tracked for this episode." />
+                    )}
+                    <FormGrid>
+                      <Input label="Incident type" value={incidentForm.event_type} onChange={(value) => setIncidentForm((current) => ({ ...current, event_type: value }))} />
+                      <Input label="Severity" value={incidentForm.severity} onChange={(value) => setIncidentForm((current) => ({ ...current, severity: value }))} />
+                      <Input label="Occurred at" type="datetime-local" value={incidentForm.occurred_at} onChange={(value) => setIncidentForm((current) => ({ ...current, occurred_at: value }))} />
+                      <Input label="Description" value={incidentForm.description} onChange={(value) => setIncidentForm((current) => ({ ...current, description: value }))} />
+                      <Input label="Follow-up owner" value={incidentForm.follow_up_owner} onChange={(value) => setIncidentForm((current) => ({ ...current, follow_up_owner: value }))} />
+                      <Input label="Status" value={incidentForm.status} onChange={(value) => setIncidentForm((current) => ({ ...current, status: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveIncident()}>
+                      Record incident
+                    </button>
+                    <FormGrid>
+                      <Input label="Infection type" value={infectionForm.infection_type} onChange={(value) => setInfectionForm((current) => ({ ...current, infection_type: value }))} />
+                      <Input label="Identified at" type="datetime-local" value={infectionForm.identified_at} onChange={(value) => setInfectionForm((current) => ({ ...current, identified_at: value }))} />
+                      <Input label="Source" value={infectionForm.source} onChange={(value) => setInfectionForm((current) => ({ ...current, source: value }))} />
+                      <Input label="Interventions" value={infectionForm.intervention_summary} onChange={(value) => setInfectionForm((current) => ({ ...current, intervention_summary: value }))} />
+                      <Input label="Status" value={infectionForm.status} onChange={(value) => setInfectionForm((current) => ({ ...current, status: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveInfectionLog()}>
+                      Record infection log
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState text="Choose an episode before managing orders, supervision, incidents, and infections." />
+              )}
+            </Panel>
+            )}
+            {episodeWorkspaceTab === 'review' && (
+            <Panel
+              title="Payer Controls, Supplies, and Case Conference"
+              subtitle="Keep eligibility, authorization limits, DME/supplies, and interdisciplinary conference notes tied to the episode."
+              tone="soft"
+            >
+              {selectedEpisode ? (
+                <div className="content-grid">
+                  <div className="stack">
+                    <strong>Eligibility and authorizations</strong>
+                    {selectedEpisodeEligibilityChecks.map((check) => (
+                      <div key={`eligibility-${check.id}`} className="action-row">
+                        <div>
+                          <strong>{check.payer_type}</strong>
+                          <p className="muted">
+                            {labelizeValue(check.check_status)} · {check.checked_at ?? 'Check date pending'} · {check.response_reference ?? 'No response reference'}
+                          </p>
+                          <p className="muted">{check.coverage_summary ?? 'Coverage summary not captured.'}</p>
+                        </div>
+                        <span className={`pill ${check.check_status === 'eligible' ? 'neutral' : 'warn'}`}>{labelizeValue(check.check_status)}</span>
+                      </div>
+                    ))}
+                    {selectedEpisodeAuthorizations.map((authorization) => (
+                      <div key={`authorization-${authorization.id}`} className="action-row">
+                        <div>
+                          <strong>{authorization.authorization_number ?? authorization.payer_type}</strong>
+                          <p className="muted">
+                            {labelizeValue(authorization.status)} · {authorization.used_visits}/{authorization.authorized_visits ?? 0} visits used · Expires {authorization.expiration_date ?? 'Pending'}
+                          </p>
+                          <p className="muted">{authorization.verification_notes ?? 'No verification note captured.'}</p>
+                        </div>
+                        <span className={`pill ${authorization.status === 'approved' ? 'neutral' : 'warn'}`}>{labelizeValue(authorization.status)}</span>
+                      </div>
+                    ))}
+                    <FormGrid>
+                      <Input label="Payer" value={eligibilityForm.payer_type} onChange={(value) => setEligibilityForm((current) => ({ ...current, payer_type: value }))} />
+                      <Input label="Eligibility status" value={eligibilityForm.check_status} onChange={(value) => setEligibilityForm((current) => ({ ...current, check_status: value }))} />
+                      <Input label="Checked at" type="datetime-local" value={eligibilityForm.checked_at} onChange={(value) => setEligibilityForm((current) => ({ ...current, checked_at: value }))} />
+                      <Input label="Coverage summary" value={eligibilityForm.coverage_summary} onChange={(value) => setEligibilityForm((current) => ({ ...current, coverage_summary: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveEligibilityCheck()}>
+                      Save eligibility
+                    </button>
+                    <FormGrid>
+                      <Input label="Payer" value={authorizationForm.payer_type} onChange={(value) => setAuthorizationForm((current) => ({ ...current, payer_type: value }))} />
+                      <Input label="Authorization #" value={authorizationForm.authorization_number} onChange={(value) => setAuthorizationForm((current) => ({ ...current, authorization_number: value }))} />
+                      <Input label="Authorized visits" value={authorizationForm.authorized_visits} onChange={(value) => setAuthorizationForm((current) => ({ ...current, authorized_visits: value }))} />
+                      <Input label="Used visits" value={authorizationForm.used_visits} onChange={(value) => setAuthorizationForm((current) => ({ ...current, used_visits: value }))} />
+                      <Input label="Expires" type="date" value={authorizationForm.expiration_date} onChange={(value) => setAuthorizationForm((current) => ({ ...current, expiration_date: value }))} />
+                      <Input label="Status" value={authorizationForm.status} onChange={(value) => setAuthorizationForm((current) => ({ ...current, status: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveAuthorization()}>
+                      Save authorization
+                    </button>
+                  </div>
+                  <div className="stack">
+                    <strong>DME, supplies, and case conferences</strong>
+                    {selectedEpisodeDmeSupplyOrders.map((order) => (
+                      <div key={`dme-${order.id}`} className="action-row">
+                        <div>
+                          <strong>{order.item_name}</strong>
+                          <p className="muted">
+                            {order.order_type} · {labelizeValue(order.status)} · Delivered {order.delivered_at ?? 'Pending'}
+                          </p>
+                          <p className="muted">
+                            POC linked: {order.plan_of_care_linked ? 'Yes' : 'No'} · Usage documented: {order.usage_documented ? 'Yes' : 'No'}
+                          </p>
+                        </div>
+                        <span className={`pill ${order.status === 'delivered' ? 'neutral' : 'warn'}`}>{labelizeValue(order.status)}</span>
+                      </div>
+                    ))}
+                    {selectedEpisodeCaseConferences.map((conference) => (
+                      <div key={`case-conference-${conference.id}`} className="action-row">
+                        <div>
+                          <strong>{conference.conference_date ?? 'Case conference'}</strong>
+                          <p className="muted">{conference.participants ?? 'Participants pending'}</p>
+                          <p className="muted">{conference.decisions ?? 'Decisions pending'}</p>
+                          <p className="muted">Follow-up: {conference.follow_up_owner ?? 'Unassigned'} · {conference.follow_up_due_at ?? 'No due date'}</p>
+                        </div>
+                        <span className={`pill ${conference.status === 'completed' ? 'neutral' : 'warn'}`}>{labelizeValue(conference.status)}</span>
+                      </div>
+                    ))}
+                    <FormGrid>
+                      <Input label="Item" value={dmeSupplyForm.item_name} onChange={(value) => setDmeSupplyForm((current) => ({ ...current, item_name: value }))} />
+                      <Input label="Type" value={dmeSupplyForm.order_type} onChange={(value) => setDmeSupplyForm((current) => ({ ...current, order_type: value }))} />
+                      <Input label="Status" value={dmeSupplyForm.status} onChange={(value) => setDmeSupplyForm((current) => ({ ...current, status: value }))} />
+                      <Input label="Delivered at" type="datetime-local" value={dmeSupplyForm.delivered_at} onChange={(value) => setDmeSupplyForm((current) => ({ ...current, delivered_at: value }))} />
+                      <Input label="Billing relevance" value={dmeSupplyForm.billing_relevance} onChange={(value) => setDmeSupplyForm((current) => ({ ...current, billing_relevance: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveDmeSupplyOrder()}>
+                      Save DME/supply
+                    </button>
+                    <FormGrid>
+                      <Input label="Conference date" type="datetime-local" value={caseConferenceForm.conference_date} onChange={(value) => setCaseConferenceForm((current) => ({ ...current, conference_date: value }))} />
+                      <Input label="Participants" value={caseConferenceForm.participants} onChange={(value) => setCaseConferenceForm((current) => ({ ...current, participants: value }))} />
+                      <Input label="Decisions" value={caseConferenceForm.decisions} onChange={(value) => setCaseConferenceForm((current) => ({ ...current, decisions: value }))} />
+                      <Input label="Follow-up owner" value={caseConferenceForm.follow_up_owner} onChange={(value) => setCaseConferenceForm((current) => ({ ...current, follow_up_owner: value }))} />
+                      <Input label="Status" value={caseConferenceForm.status} onChange={(value) => setCaseConferenceForm((current) => ({ ...current, status: value }))} />
+                    </FormGrid>
+                    <button className="secondary-button" type="button" onClick={() => void saveCaseConference()}>
+                      Save case conference
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <EmptyState text="Choose an episode before managing payer controls, supplies, and case conferences." />
               )}
             </Panel>
             )}
@@ -4789,6 +6826,186 @@ function App() {
                 </div>
               ) : (
                 <EmptyState text="Choose an episode to load the pre-bill summary." />
+              )}
+            </Panel>
+            )}
+            {episodeWorkspaceTab === 'review' && (
+            <Panel
+              title="OASIS Submission Readiness"
+              subtitle="Prepare demo iQIES-ready export packages, track acknowledgments, and route rejected submissions back to QA."
+              tone="soft"
+            >
+              {selectedEpisode ? (
+                <div className="stack">
+                  <div className="row-actions wrap">
+                    <button className="primary-button" type="button" onClick={() => void prepareOasisSubmissionForSelectedEpisode()}>
+                      Prepare submission package
+                    </button>
+                  </div>
+                  {selectedEpisodeOasisSubmissions.length > 0 ? (
+                    selectedEpisodeOasisSubmissions.map((submission) => (
+                      <div key={submission.id} className="action-row">
+                        <div>
+                          <strong>{submission.submission_reference ?? `Submission ${submission.id}`}</strong>
+                          <p className="muted">
+                            {labelizeValue(submission.submission_status)} · {submission.iqies_ready ? 'iQIES ready' : 'Needs completion'}
+                          </p>
+                          <p className="muted">{submission.readiness_notes ?? 'No readiness notes recorded.'}</p>
+                          <p className="muted">
+                            Submitted: {submission.submitted_at ?? 'Not submitted'} · Ack: {submission.acknowledgment_status ?? 'Pending'}
+                          </p>
+                        </div>
+                        <div className="row-actions wrap">
+                          <span className={`pill ${submission.iqies_ready ? 'neutral' : 'warn'}`}>{submission.iqies_ready ? 'Ready' : 'Draft'}</span>
+                          <button className="secondary-button" type="button" onClick={() => loadOasisSubmissionIntoForm(submission)}>
+                            Update submission
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <EmptyState text="No OASIS submission packages have been prepared yet for this episode." />
+                  )}
+                  <FormGrid>
+                    <Select
+                      label="Submission"
+                      value={oasisSubmissionForm.submission_id}
+                      onChange={(value) => setOasisSubmissionForm((current) => ({ ...current, submission_id: value }))}
+                      options={[
+                        { label: 'Choose a submission', value: '' },
+                        ...selectedEpisodeOasisSubmissions.map((submission) => ({
+                          label: `${submission.submission_reference ?? `Submission ${submission.id}`} · ${labelizeValue(submission.submission_status)}`,
+                          value: String(submission.id),
+                        })),
+                      ]}
+                    />
+                    <Select
+                      label="Status"
+                      value={oasisSubmissionForm.submission_status}
+                      onChange={(value) => setOasisSubmissionForm((current) => ({ ...current, submission_status: value }))}
+                      options={[
+                        { label: 'Draft', value: 'draft' },
+                        { label: 'Ready', value: 'ready' },
+                        { label: 'Submitted', value: 'submitted' },
+                        { label: 'Accepted', value: 'accepted' },
+                        { label: 'Rejected', value: 'rejected' },
+                      ]}
+                    />
+                    <Input
+                      label="Acknowledgment note"
+                      value={oasisSubmissionForm.acknowledgment_note}
+                      onChange={(value) => setOasisSubmissionForm((current) => ({ ...current, acknowledgment_note: value }))}
+                    />
+                    <Input
+                      label="Rejection note"
+                      value={oasisSubmissionForm.rejection_note}
+                      onChange={(value) => setOasisSubmissionForm((current) => ({ ...current, rejection_note: value }))}
+                    />
+                  </FormGrid>
+                  <button className="secondary-button" type="button" onClick={() => void runOasisSubmissionAction()}>
+                    Save submission update
+                  </button>
+                </div>
+              ) : (
+                <EmptyState text="Choose an episode to manage OASIS submission readiness." />
+              )}
+            </Panel>
+            )}
+            {episodeWorkspaceTab === 'review' && (
+            <Panel
+              title="Plan of Care (485)"
+              subtitle="Generate a 485-style summary from assessment, orders, and recent charting, then maintain versioned physician review states."
+              tone="soft"
+            >
+              {selectedEpisode ? (
+                <div className="stack">
+                  <div className="row-actions wrap">
+                    <button className="primary-button" type="button" onClick={() => void generatePlanOfCareForSelectedEpisode()}>
+                      Generate plan of care
+                    </button>
+                  </div>
+                  {selectedEpisodePlansOfCare.length > 0 ? (
+                    selectedEpisodePlansOfCare.map((plan) => (
+                      <div key={plan.id} className="action-row">
+                        <div>
+                          <strong>Version {plan.version_number}</strong>
+                          <p className="muted">
+                            {labelizeValue(plan.review_status)} · Effective {plan.effective_date ?? 'Pending'}
+                          </p>
+                          {plan.plan_summary ? <p className="muted">{plan.plan_summary}</p> : null}
+                          {plan.goal_summary ? <p className="muted">Goals: {plan.goal_summary}</p> : null}
+                        </div>
+                        <div className="row-actions wrap">
+                          <span className={`pill ${plan.review_status === 'approved' || plan.review_status === 'physician_reviewed' ? 'neutral' : 'warn'}`}>
+                            {labelizeValue(plan.review_status)}
+                          </span>
+                          <button className="secondary-button" type="button" onClick={() => loadPlanOfCareIntoForm(plan)}>
+                            Edit plan
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <EmptyState text="No plan-of-care versions have been generated for this episode yet." />
+                  )}
+                  <FormGrid>
+                    <Select
+                      label="Plan"
+                      value={planOfCareForm.plan_id}
+                      onChange={(value) => setPlanOfCareForm((current) => ({ ...current, plan_id: value }))}
+                      options={[
+                        { label: 'Choose a plan', value: '' },
+                        ...selectedEpisodePlansOfCare.map((plan) => ({ label: `Version ${plan.version_number} · ${labelizeValue(plan.review_status)}`, value: String(plan.id) })),
+                      ]}
+                    />
+                    <Select
+                      label="Review status"
+                      value={planOfCareForm.review_status}
+                      onChange={(value) => setPlanOfCareForm((current) => ({ ...current, review_status: value }))}
+                      options={[
+                        { label: 'Draft', value: 'draft' },
+                        { label: 'Physician reviewed', value: 'physician_reviewed' },
+                        { label: 'Approved', value: 'approved' },
+                      ]}
+                    />
+                    <Input label="Plan summary" value={planOfCareForm.plan_summary} onChange={(value) => setPlanOfCareForm((current) => ({ ...current, plan_summary: value }))} />
+                    <Input label="Goal summary" value={planOfCareForm.goal_summary} onChange={(value) => setPlanOfCareForm((current) => ({ ...current, goal_summary: value }))} />
+                    <Input label="Intervention summary" value={planOfCareForm.intervention_summary} onChange={(value) => setPlanOfCareForm((current) => ({ ...current, intervention_summary: value }))} />
+                    <Input label="Physician review note" value={planOfCareForm.physician_review_note} onChange={(value) => setPlanOfCareForm((current) => ({ ...current, physician_review_note: value }))} />
+                  </FormGrid>
+                  <textarea className="input-control" rows={5} value={planOfCareForm.printable_content} onChange={(event) => setPlanOfCareForm((current) => ({ ...current, printable_content: event.target.value }))} />
+                  <button className="secondary-button" type="button" onClick={() => void savePlanOfCare()}>
+                    Save plan of care
+                  </button>
+                </div>
+              ) : (
+                <EmptyState text="Choose an episode to manage plan-of-care versions." />
+              )}
+            </Panel>
+            )}
+            {episodeWorkspaceTab === 'review' && (
+            <Panel
+              title="PDGM and Utilization Review"
+              subtitle="Expose the PDGM derivation story and warn when projected visit utilization creates demo LUPA risk."
+              tone="soft"
+            >
+              {selectedEpisode && episodeInsights ? (
+                <div className="detail-stack">
+                  <KeyValue label="PDGM group" value={episodeInsights.pdgm_breakdown.group_code || 'Pending'} />
+                  <KeyValue label="Clinical group" value={episodeInsights.pdgm_breakdown.clinical_group} />
+                  <KeyValue label="Timing" value={episodeInsights.pdgm_breakdown.timing} />
+                  <KeyValue label="Functional level" value={episodeInsights.pdgm_breakdown.functional_level} />
+                  <KeyValue label="Comorbidity" value={episodeInsights.pdgm_breakdown.comorbidity_adjustment} />
+                  <KeyValue label="Admission source" value={episodeInsights.pdgm_breakdown.admission_source} />
+                  <KeyValue label="Projected visits" value={String(episodeInsights.utilization_risk.projected_visits)} />
+                  <KeyValue label="LUPA threshold" value={String(episodeInsights.utilization_risk.threshold_visits)} />
+                  <KeyValue label="Risk level" value={labelizeValue(episodeInsights.utilization_risk.risk_level)} />
+                  <FieldNote text={episodeInsights.pdgm_breakdown.explanation} />
+                  <FieldNote text={episodeInsights.utilization_risk.warning_note ?? 'No current utilization warning.'} />
+                  <FieldNote text={episodeInsights.utilization_risk.recommended_action ?? ''} />
+                </div>
+              ) : (
+                <EmptyState text="Choose an episode to review PDGM breakdown and utilization risk." />
               )}
             </Panel>
             )}
@@ -5837,6 +8054,166 @@ function App() {
               </div>
             </Panel>
             <Panel
+              title="EDI and Remittance Ledger"
+              subtitle="Demo-ready 837I, 277, and 835/ERA tracking with payer control numbers and reconciliation notes."
+              tone="soft"
+            >
+              <div className="content-grid">
+                <div className="stack">
+                  <strong>Claim transactions</strong>
+                  {selectedEpisodeClaimTransactions.length > 0 ? (
+                    selectedEpisodeClaimTransactions.map((transaction) => (
+                      <div key={`claim-transaction-${transaction.id}`} className="action-row">
+                        <div>
+                          <strong>{transaction.transaction_type}</strong>
+                          <p className="muted">
+                            {labelizeValue(transaction.transaction_status)} · Payer control: {transaction.payer_control_number ?? 'Pending'} · {transaction.transmitted_at ?? 'Not transmitted'}
+                          </p>
+                          <p className="muted">{transaction.payload_summary ?? 'No payload summary recorded.'}</p>
+                          {transaction.response_summary ? <p className="muted">Response: {transaction.response_summary}</p> : null}
+                        </div>
+                        <span className={`pill ${transaction.transaction_status === 'accepted' ? 'neutral' : 'warn'}`}>
+                          {labelizeValue(transaction.transaction_status)}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <EmptyState text="No claim transactions are tracked for the selected episode." />
+                  )}
+                  <FormGrid>
+                    <Select
+                      label="Claim"
+                      value={claimTransactionForm.claim_id}
+                      onChange={(value) => setClaimTransactionForm((current) => ({ ...current, claim_id: value }))}
+                      options={[
+                        { label: 'Choose a claim', value: '' },
+                        ...dataset.claims.map((claim) => ({ label: `${claim.claim_type.toUpperCase()} · Episode ${claim.episode_id}`, value: String(claim.id) })),
+                      ]}
+                    />
+                    <Input label="Transaction type" value={claimTransactionForm.transaction_type} onChange={(value) => setClaimTransactionForm((current) => ({ ...current, transaction_type: value }))} />
+                    <Input label="Status" value={claimTransactionForm.transaction_status} onChange={(value) => setClaimTransactionForm((current) => ({ ...current, transaction_status: value }))} />
+                    <Input label="Payer control #" value={claimTransactionForm.payer_control_number} onChange={(value) => setClaimTransactionForm((current) => ({ ...current, payer_control_number: value }))} />
+                    <Input label="Transmitted at" type="datetime-local" value={claimTransactionForm.transmitted_at} onChange={(value) => setClaimTransactionForm((current) => ({ ...current, transmitted_at: value }))} />
+                    <Input label="Payload summary" value={claimTransactionForm.payload_summary} onChange={(value) => setClaimTransactionForm((current) => ({ ...current, payload_summary: value }))} />
+                    <Input label="Response summary" value={claimTransactionForm.response_summary} onChange={(value) => setClaimTransactionForm((current) => ({ ...current, response_summary: value }))} />
+                  </FormGrid>
+                  <button className="secondary-button" type="button" onClick={() => void saveClaimTransaction()}>
+                    Save claim transaction
+                  </button>
+                </div>
+                <div className="stack">
+                  <strong>835/ERA remittance</strong>
+                  {selectedEpisodeRemittancePostings.length > 0 ? (
+                    selectedEpisodeRemittancePostings.map((posting) => (
+                      <div key={`remittance-${posting.id}`} className="action-row">
+                        <div>
+                          <strong>{posting.era_reference ?? `ERA ${posting.id}`}</strong>
+                          <p className="muted">
+                            Paid {formatCurrency(posting.payment_amount ?? 0)} · Adjusted {formatCurrency(posting.adjustment_amount ?? 0)} · {posting.posted_at ?? 'Not posted'}
+                          </p>
+                          <p className="muted">{posting.reason_codes ?? 'No reason codes recorded.'}</p>
+                        </div>
+                        <span className={`pill ${posting.reconciliation_status === 'posted' ? 'neutral' : 'warn'}`}>
+                          {labelizeValue(posting.reconciliation_status)}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <EmptyState text="No remittance postings are tracked for the selected episode." />
+                  )}
+                  <FormGrid>
+                    <Select
+                      label="Claim"
+                      value={remittanceForm.claim_id}
+                      onChange={(value) => setRemittanceForm((current) => ({ ...current, claim_id: value }))}
+                      options={[
+                        { label: 'Choose a claim', value: '' },
+                        ...dataset.claims.map((claim) => ({ label: `${claim.claim_type.toUpperCase()} · Episode ${claim.episode_id}`, value: String(claim.id) })),
+                      ]}
+                    />
+                    <Input label="ERA reference" value={remittanceForm.era_reference} onChange={(value) => setRemittanceForm((current) => ({ ...current, era_reference: value }))} />
+                    <Input label="Payment amount" value={remittanceForm.payment_amount} onChange={(value) => setRemittanceForm((current) => ({ ...current, payment_amount: value }))} />
+                    <Input label="Adjustment amount" value={remittanceForm.adjustment_amount} onChange={(value) => setRemittanceForm((current) => ({ ...current, adjustment_amount: value }))} />
+                    <Input label="Reason codes" value={remittanceForm.reason_codes} onChange={(value) => setRemittanceForm((current) => ({ ...current, reason_codes: value }))} />
+                    <Input label="Posted at" type="datetime-local" value={remittanceForm.posted_at} onChange={(value) => setRemittanceForm((current) => ({ ...current, posted_at: value }))} />
+                    <Input label="Reconciliation" value={remittanceForm.reconciliation_status} onChange={(value) => setRemittanceForm((current) => ({ ...current, reconciliation_status: value }))} />
+                  </FormGrid>
+                  <button className="secondary-button" type="button" onClick={() => void saveRemittancePosting()}>
+                    Save remittance
+                  </button>
+                </div>
+              </div>
+            </Panel>
+            <Panel
+              title="Coder Review Queue"
+              subtitle="Tie diagnosis reconciliation, claim-edit follow-up, utilization risk, and corrected-claim preparation into one coding work surface."
+              tone="soft"
+            >
+              <div className="stack">
+                <div className="row-actions wrap">
+                  <button className="primary-button" type="button" onClick={() => void syncCoderReviewForSelectedEpisode()}>
+                    Sync selected episode
+                  </button>
+                </div>
+                {dataset.coderReviewItems.length > 0 ? (
+                  dataset.coderReviewItems.map((item) => (
+                    <div key={item.id} className="action-row">
+                      <div>
+                        <strong>{item.title}</strong>
+                        <p className="muted">
+                          Episode {item.episode_id} · {labelizeValue(item.category)} · {labelizeValue(item.priority)}
+                        </p>
+                        {item.details ? <p className="muted">{item.details}</p> : null}
+                        {item.recommendation ? <p className="muted">Recommendation: {item.recommendation}</p> : null}
+                        {item.correction_note ? <p className="muted">Correction note: {item.correction_note}</p> : null}
+                      </div>
+                      <div className="row-actions wrap">
+                        <span className={`pill ${item.status === 'resolved' ? 'neutral' : 'warn'}`}>{labelizeValue(item.status)}</span>
+                        <button className="secondary-button" type="button" onClick={() => loadCoderReviewIntoForm(item)}>
+                          Update item
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState text="No coder-review items are currently open. Sync an episode to build the queue from live blockers." />
+                )}
+                <FormGrid>
+                  <Select
+                    label="Coder review item"
+                    value={coderReviewForm.item_id}
+                    onChange={(value) => setCoderReviewForm((current) => ({ ...current, item_id: value }))}
+                    options={[
+                      { label: 'Choose an item', value: '' },
+                      ...dataset.coderReviewItems.map((item) => ({ label: `${item.title} · Episode ${item.episode_id}`, value: String(item.id) })),
+                    ]}
+                  />
+                  <Select
+                    label="Status"
+                    value={coderReviewForm.status}
+                    onChange={(value) => setCoderReviewForm((current) => ({ ...current, status: value }))}
+                    options={[
+                      { label: 'Open', value: 'open' },
+                      { label: 'Resolved', value: 'resolved' },
+                    ]}
+                  />
+                  <Input
+                    label="Recommendation"
+                    value={coderReviewForm.recommendation}
+                    onChange={(value) => setCoderReviewForm((current) => ({ ...current, recommendation: value }))}
+                  />
+                  <Input
+                    label="Correction note"
+                    value={coderReviewForm.correction_note}
+                    onChange={(value) => setCoderReviewForm((current) => ({ ...current, correction_note: value }))}
+                  />
+                </FormGrid>
+                <button className="secondary-button" type="button" onClick={() => void saveCoderReviewItem()}>
+                  Save coder review item
+                </button>
+              </div>
+            </Panel>
+            <Panel
               title="Claim Status Lanes"
               subtitle="Separate submitted, accepted, denied/rework, and paid claims so Billing can work each state intentionally."
               tone="soft"
@@ -6285,6 +8662,32 @@ function App() {
                 )}
               </div>
             </Panel>
+            <Panel
+              title="OASIS Submission Queue"
+              subtitle="QA can track draft, submitted, accepted, and rejected OASIS packages alongside chart review."
+              tone="soft"
+            >
+              <div className="stack">
+                {dataset.oasisSubmissions.length > 0 ? (
+                  dataset.oasisSubmissions.map((submission) => (
+                    <div key={submission.id} className="action-row">
+                      <div>
+                        <strong>{submission.submission_reference ?? `Submission ${submission.id}`}</strong>
+                        <p className="muted">
+                          Episode {submission.episode_id} · {labelizeValue(submission.submission_status)} · {submission.iqies_ready ? 'Ready' : 'Needs work'}
+                        </p>
+                        <p className="muted">{submission.readiness_notes ?? submission.rejection_note ?? 'No QA note recorded.'}</p>
+                      </div>
+                      <div className="row-actions wrap">
+                        <span className={`pill ${submission.submission_status === 'rejected' ? 'warn' : 'neutral'}`}>{labelizeValue(submission.submission_status)}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <EmptyState text="No OASIS submission packages are in the queue yet." />
+                )}
+              </div>
+            </Panel>
             <Panel title="Lifecycle Workflows" subtitle="Recertification, transfer, ROC, and death-at-home readiness.">
               <div className="detail-stack">
                 <KeyValue label="Recertification" value="Create reassessment tasks during days 56-60 of the cert period." />
@@ -6581,6 +8984,126 @@ function App() {
                 </button>
                 <button className="secondary-button" type="button" onClick={() => exportAdminReport('audit')}>
                   Export audit CSV
+                </button>
+              </div>
+            </Panel>
+            <Panel
+              title="QAPI Infrastructure"
+              subtitle="Track improvement projects, owners, review cadence, and linked QA or audit evidence in a lightweight demo-ready program view."
+              tone="soft"
+            >
+              <div className="content-grid">
+                <div className="stack">
+                  {dataset.qapiProjects.length > 0 ? (
+                    dataset.qapiProjects.map((project) => (
+                      <div key={project.id} className="action-row">
+                        <div>
+                          <strong>{project.title}</strong>
+                          <p className="muted">
+                            {project.measure_name} · {project.owner_name} · {labelizeValue(project.review_cadence)}
+                          </p>
+                          <p className="muted">
+                            Target: {project.target_value ?? 'Not set'} · Current: {project.current_value ?? 'Not set'} · Status: {labelizeValue(project.status)}
+                          </p>
+                          {project.intervention_plan ? <p className="muted">{project.intervention_plan}</p> : null}
+                        </div>
+                        <div className="row-actions wrap">
+                          <span className={`pill ${project.status === 'active' ? 'neutral' : 'warn'}`}>{labelizeValue(project.status)}</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <EmptyState text="No QAPI projects are currently tracked." />
+                  )}
+                </div>
+                <div className="stack">
+                  <strong>Add QAPI project</strong>
+                  <FormGrid>
+                    <Input label="Title" value={qapiForm.title} onChange={(value) => setQapiForm((current) => ({ ...current, title: value }))} />
+                    <Input label="Measure" value={qapiForm.measure_name} onChange={(value) => setQapiForm((current) => ({ ...current, measure_name: value }))} />
+                    <Input label="Owner" value={qapiForm.owner_name} onChange={(value) => setQapiForm((current) => ({ ...current, owner_name: value }))} />
+                    <Input label="Review cadence" value={qapiForm.review_cadence} onChange={(value) => setQapiForm((current) => ({ ...current, review_cadence: value }))} />
+                    <Input label="Status" value={qapiForm.status} onChange={(value) => setQapiForm((current) => ({ ...current, status: value }))} />
+                    <Input label="Target value" value={qapiForm.target_value} onChange={(value) => setQapiForm((current) => ({ ...current, target_value: value }))} />
+                    <Input label="Current value" value={qapiForm.current_value} onChange={(value) => setQapiForm((current) => ({ ...current, current_value: value }))} />
+                    <Input label="Intervention plan" value={qapiForm.intervention_plan} onChange={(value) => setQapiForm((current) => ({ ...current, intervention_plan: value }))} />
+                    <Input label="Evidence summary" value={qapiForm.evidence_summary} onChange={(value) => setQapiForm((current) => ({ ...current, evidence_summary: value }))} />
+                  </FormGrid>
+                  <button className="primary-button" type="button" onClick={() => void saveQapiProject()}>
+                    Save QAPI project
+                  </button>
+                </div>
+              </div>
+            </Panel>
+            <Panel
+              title="Survey Readiness Dashboard"
+              subtitle="Aggregate patient rights, notices, orders aging, aide supervision, incidents, infections, authorization, and documentation integrity."
+              tone="emphasis"
+            >
+              <div className="hero-grid">
+                {dataset.surveyReadinessSummary.category_scores.map((category) => (
+                  <MetricCard key={`survey-${category.key}`} label={category.label} value={Math.round(category.score)} />
+                ))}
+              </div>
+              <div className="content-grid">
+                <div className="stack">
+                  {dataset.surveyReadinessSummary.category_scores.map((category) => (
+                    <div key={`survey-row-${category.key}`} className="action-row">
+                      <div>
+                        <strong>{category.label}</strong>
+                        <p className="muted">
+                          Score {category.score}% · {category.issue_count} open issue{category.issue_count === 1 ? '' : 's'} · {labelizeValue(category.status)}
+                        </p>
+                        <p className="muted">{category.summary}</p>
+                      </div>
+                      <span className={`pill ${category.status === 'green' ? 'neutral' : 'warn'}`}>{labelizeValue(category.status)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="stack">
+                  <strong>Open compliance counts</strong>
+                  {Object.entries(dataset.surveyReadinessSummary.open_counts).map(([key, value]) => (
+                    <KeyValue key={`survey-count-${key}`} label={labelizeValue(key)} value={String(value)} />
+                  ))}
+                  <KeyValue label="Last generated" value={dataset.surveyReadinessSummary.generated_at} />
+                  <KeyValue label="Snapshot history" value={String(dataset.surveyReadinessSummary.history.length)} />
+                  <div className="row-actions wrap">
+                    <button className="secondary-button" type="button" onClick={() => void captureSurveyReadinessAction()}>
+                      Capture survey snapshot
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </Panel>
+            <Panel
+              title="Star Rating and VBP Tracking"
+              subtitle="Show internal performance scorecards inspired by quality operations, not official CMS-calculated scores."
+              tone="soft"
+            >
+              <div className="hero-grid">
+                {dataset.qualityMetricsSummary.metrics.map((metric) => (
+                  <MetricCard key={`quality-${metric.key}`} label={metric.label} value={Math.round(metric.score)} />
+                ))}
+              </div>
+              <div className="stack">
+                {dataset.qualityMetricsSummary.metrics.map((metric) => (
+                  <div key={`quality-row-${metric.key}`} className="action-row">
+                    <div>
+                      <strong>{metric.label}</strong>
+                      <p className="muted">
+                        Score {metric.score}% · {metric.numerator}/{metric.denominator}
+                      </p>
+                      {metric.note ? <p className="muted">{metric.note}</p> : null}
+                    </div>
+                    <div className="row-actions wrap">
+                      <span className={`pill ${metric.score >= 85 ? 'neutral' : 'warn'}`}>{metric.score}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="row-actions wrap">
+                <button className="secondary-button" type="button" onClick={() => void captureQualityMetricsAction()}>
+                  Capture quality snapshot
                 </button>
               </div>
             </Panel>
@@ -7307,73 +9830,6 @@ function findSentenceContaining(text: string, terms: string[]) {
 
   const sentence = sentences.find((item) => terms.some((term) => item.toLowerCase().includes(term.toLowerCase())))
   return sentence?.trim()
-}
-
-function formatUsPhone(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 10)
-  if (digits.length <= 3) {
-    return digits
-  }
-  if (digits.length <= 6) {
-    return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
-  }
-
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-}
-
-function formatStateCode(value: string) {
-  return value.replace(/[^a-z]/gi, '').toUpperCase().slice(0, 2)
-}
-
-function formatZipCode(value: string) {
-  const digits = value.replace(/\D/g, '').slice(0, 9)
-  if (digits.length <= 5) {
-    return digits
-  }
-
-  return `${digits.slice(0, 5)}-${digits.slice(5)}`
-}
-
-function formatAddress(patient: Partial<Patient>) {
-  const cityState = [patient.city, patient.state].filter(Boolean).join(', ')
-  const cityStateZip = [cityState, patient.postal_code].filter(Boolean).join(' ')
-  return [patient.address1, patient.address2, cityStateZip].filter(Boolean).join(' · ') || 'Not set'
-}
-
-function formatCoverage(patient: Partial<Patient>) {
-  return [patient.payer_type, patient.insurance_member_id || patient.medicare_number].filter(Boolean).join(' · ') || 'Not set'
-}
-
-function formatContact(name?: string, relationship?: string, phone?: string) {
-  const identity = [name, relationship].filter(Boolean).join(' · ')
-  return [identity, phone].filter(Boolean).join(' · ')
-}
-
-function formatNamePhone(name?: string, phone?: string) {
-  return [name, phone].filter(Boolean).join(' · ') || 'Not captured'
-}
-
-function formatPatientContacts(patient: Partial<Patient>) {
-  const primary = patient.phone ? `Primary ${patient.phone}` : ''
-  const emergency = formatContact(patient.emergency_contact_name, patient.emergency_contact_relationship, patient.emergency_contact_phone)
-  const responsible = formatContact(
-    patient.responsible_party_name,
-    patient.responsible_party_relationship,
-    patient.responsible_party_phone,
-  )
-
-  return [primary, emergency && `Emergency ${emergency}`, responsible && `Responsible ${responsible}`].filter(Boolean).join(' / ') || 'Not set'
-}
-
-function formatServiceLocation(snapshot?: EpisodeAdmissionSnapshot | null) {
-  if (!snapshot) {
-    return 'Not captured'
-  }
-
-  const cityState = [snapshot.service_city, snapshot.service_state].filter(Boolean).join(', ')
-  const cityStateZip = [cityState, snapshot.service_postal_code].filter(Boolean).join(' ')
-
-  return [snapshot.service_location_type, snapshot.service_address1, cityStateZip].filter(Boolean).join(' · ') || 'Not captured'
 }
 
 function normalizeAdmissionSnapshot(
@@ -8929,6 +11385,38 @@ function normalizeDisciplines(value?: string[] | string) {
   return []
 }
 
+function csvToArray(value: string) {
+  return value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter(Boolean)
+}
+
+function normalizeQapiProjects(projects: QapiProject[]) {
+  return projects.map((project) => ({
+    ...project,
+    linked_task_ids: Array.isArray(project.linked_task_ids)
+      ? project.linked_task_ids
+      : typeof project.linked_task_ids === 'string' && project.linked_task_ids.trim() !== ''
+        ? safeParseNumericArray(project.linked_task_ids)
+        : [],
+    linked_audit_event_ids: Array.isArray(project.linked_audit_event_ids)
+      ? project.linked_audit_event_ids
+      : typeof project.linked_audit_event_ids === 'string' && project.linked_audit_event_ids.trim() !== ''
+        ? safeParseNumericArray(project.linked_audit_event_ids)
+        : [],
+  }))
+}
+
+function safeParseNumericArray(value: string) {
+  try {
+    const parsed = JSON.parse(value) as number[]
+    return Array.isArray(parsed) ? parsed.map((entry) => Number(entry)).filter((entry) => Number.isFinite(entry)) : []
+  } catch {
+    return []
+  }
+}
+
 function normalizeAssessmentAnswers(value?: Assessment['answers'] | string | null) {
   if (!value) {
     return {}
@@ -9499,6 +11987,134 @@ function buildDemoEpisodeReviewSummary(episode: Episode, dataset: AppDataset): E
   }
 }
 
+function buildDemoEpisodeInsights(episode: Episode, dataset: AppDataset): EpisodeInsightSummary {
+  const assessment = dataset.assessments
+    .filter((item) => item.episode_id === episode.id && ['final', 'locked'].includes(item.status))
+    .sort((left, right) => right.completed_at.localeCompare(left.completed_at))[0]
+  const visits = dataset.visits.filter((item) => item.episode_id === episode.id)
+  const snapshot = normalizeAdmissionSnapshot(episode.admission_readiness_snapshot) ?? deriveAdmissionSnapshot(episode, dataset.referrals)
+  const clinicalAlerts: ClinicalDecisionAlert[] = []
+
+  const visitNarrative = visits
+    .map((visit) => {
+      const payload = typeof visit.documentation_payload === 'string' ? JSON.parse(visit.documentation_payload || '{}') : (visit.documentation_payload ?? {})
+      return `${visit.documentation_summary ?? ''} ${JSON.stringify(payload)}`
+    })
+    .join(' ')
+    .toLowerCase()
+
+  if (!assessment) {
+    clinicalAlerts.push({
+      severity: 'high',
+      source: 'assessment',
+      summary: 'No finalized assessment is available to drive decision support.',
+      resolution_hint: 'Finalize SOC/OASIS before relying on automated review signals.',
+    })
+  } else {
+    if (assessment.fall_risk_level === 'high' && !/(fall|safety|balance)/.test(visitNarrative)) {
+      clinicalAlerts.push({
+        severity: 'high',
+        source: 'assessment',
+        summary: 'High fall risk is documented without matching intervention or teaching in visit charting.',
+        resolution_hint: 'Add fall-prevention teaching, mobility safety notes, or therapy intervention detail.',
+      })
+    }
+    if (['elevated', 'high'].includes(assessment.hospitalization_risk ?? '') && !/(follow|monitor|weight|provider)/.test(visitNarrative)) {
+      clinicalAlerts.push({
+        severity: 'medium',
+        source: 'assessment',
+        summary: 'Hospitalization risk is elevated without a strong follow-up plan in recent charting.',
+        resolution_hint: 'Document escalation triggers, monitoring cadence, and provider outreach in the next visit.',
+      })
+    }
+    if ((assessment.homebound_narrative ?? '').trim().length < 80) {
+      clinicalAlerts.push({
+        severity: 'medium',
+        source: 'assessment',
+        summary: 'Homebound narrative may not be detailed enough for a strong review story.',
+        resolution_hint: 'Describe exertional limits, required assistance, and why leaving home is a considerable effort.',
+      })
+    }
+  }
+
+  const assessmentChecks = assessment
+    ? [
+        Boolean(assessment.principal_diagnosis_code?.trim()),
+        Boolean(assessment.homebound_status?.trim()),
+        Boolean(assessment.homebound_narrative?.trim()),
+        Boolean(assessment.medication_reconciliation_completed),
+        Boolean(assessment.care_plan_goals?.trim()),
+        Boolean(assessment.clinical_summary?.trim()),
+      ]
+    : []
+  const assessmentScore = assessmentChecks.length > 0 ? Math.round((assessmentChecks.filter(Boolean).length / assessmentChecks.length) * 100) : 0
+  const completedVisits = visits.filter((visit) => ['completed', 'locked'].includes(visit.status))
+  const visitScore =
+    completedVisits.length > 0
+      ? Math.round(
+          (completedVisits.filter((visit) => Boolean(visit.documentation_summary?.trim()) && Boolean((visit.documentation_status ?? '').trim())).length / completedVisits.length) * 100,
+        )
+      : 0
+  const integrityBlockers = assessmentScore < 80 ? ['Assessment packet is incomplete for high-confidence QA release.'] : []
+  const integrityWarnings =
+    visitScore < 80 ? ['Completed visit documentation is missing one or more required discipline-specific sections.'] : []
+
+  const certStart = new Date(`${episode.cert_start_date}T00:00:00`)
+  const certEnd = new Date(certStart)
+  certEnd.setDate(certEnd.getDate() + 29)
+  const projectedVisits = visits.filter((visit) => {
+    const when = new Date((visit.scheduled_start.includes('T') ? visit.scheduled_start : visit.scheduled_start.replace(' ', 'T')))
+    return when >= certStart && when <= certEnd && visit.status !== 'missed'
+  }).length
+  const threshold = 5
+  const riskLevel = projectedVisits < threshold ? 'high' : projectedVisits === threshold ? 'medium' : 'low'
+  const diagnosisCode = extractDiagnosisCode(assessment?.principal_diagnosis_code ?? episode.primary_diagnosis) || 'R69'
+  const pdgmBreakdown = (() => {
+    const clinicalGroup = diagnosisCode.startsWith('I') ? 'MMTA-CARDIAC' : diagnosisCode.startsWith('J') ? 'MMTA-RESPIRATORY' : diagnosisCode.startsWith('M') ? 'MUSCULOSKELETAL' : 'MMTA-OTHER'
+    const functionalLevel = (assessment?.functional_score ?? 0) >= 16 ? 'HIGH' : (assessment?.functional_score ?? 0) >= 8 ? 'MEDIUM' : 'LOW'
+    const admissionSource = ((snapshot?.admission_source ?? '').toLowerCase().includes('hospital') ? 'INSTITUTIONAL' : 'COMMUNITY')
+    const comorbidityAdjustment = (assessment?.comorbidity_level ?? 'none').toUpperCase()
+    return {
+      group_code: `${clinicalGroup}-${admissionSource}-EARLY-${functionalLevel}-${comorbidityAdjustment}`,
+      clinical_group: clinicalGroup,
+      timing: 'EARLY',
+      functional_level: functionalLevel,
+      comorbidity_adjustment: comorbidityAdjustment,
+      admission_source: admissionSource,
+      explanation: `PDGM grouped from diagnosis ${diagnosisCode}, admission source ${admissionSource}, functional level ${functionalLevel}, and comorbidity ${comorbidityAdjustment}.`,
+    }
+  })()
+
+  return {
+    episode_id: episode.id,
+    clinical_decision_support: clinicalAlerts,
+    documentation_integrity: {
+      episode_id: episode.id,
+      assessment_score: assessmentScore,
+      visit_score: visitScore,
+      overall_score: Math.round((assessmentScore + visitScore) / (assessment ? 2 : 1)),
+      blockers: integrityBlockers,
+      warnings: integrityWarnings,
+    },
+    utilization_risk: {
+      episode_id: episode.id,
+      period_number: 1,
+      projected_visits: projectedVisits,
+      threshold_visits: threshold,
+      risk_level: riskLevel,
+      warning_note:
+        riskLevel === 'low'
+          ? 'Projected visit utilization is above the demo LUPA warning threshold.'
+          : `Projected first-period utilization is ${projectedVisits} visit(s) against a ${threshold}-visit threshold.`,
+      recommended_action:
+        riskLevel === 'low'
+          ? 'Maintain current cadence and avoid unnecessary cancellations.'
+          : 'Protect ordered frequency, reschedule missed visits quickly, and review therapy/nursing cadence before billing.',
+    },
+    pdgm_breakdown: pdgmBreakdown,
+  }
+}
+
 function buildRoleDashboardConfig(
   user: User,
   dataset: AppDataset,
@@ -9853,15 +12469,6 @@ function demoTransitionDetails(transitionType: string) {
   )
 }
 
-function formatCurrency(value: number | string) {
-  const numericValue = typeof value === 'number' ? value : Number(value)
-  if (Number.isNaN(numericValue)) {
-    return '$0.00'
-  }
-
-  return `$${numericValue.toFixed(2)}`
-}
-
 function deriveToastTone(message: string): ToastMessage['tone'] {
   const normalized = message.toLowerCase()
 
@@ -9892,24 +12499,6 @@ function deriveToastTone(message: string): ToastMessage['tone'] {
   }
 
   return 'info'
-}
-
-function labelizeValue(value: string) {
-  if (!value || value.trim() === '') {
-    return 'Not set'
-  }
-
-  return value
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (character) => character.toUpperCase())
-}
-
-function formatDueAt(value?: string) {
-  if (!value) {
-    return 'No due date'
-  }
-
-  return `Due ${value.replace('T', ' ')}`
 }
 
 function summarizeAuditDetails(details?: AuditEvent['details']) {
@@ -10155,20 +12744,6 @@ function appendQaTaskHistory(history: Array<Record<string, string>> | undefined,
   return [...normalizeQaTaskHistory(history), entry]
 }
 
-function formatTaskAssignee(task: Pick<QaTask, 'assigned_role' | 'assigned_user_name'>) {
-  if (task.assigned_user_name && task.assigned_role) {
-    return `${task.assigned_user_name} (${task.assigned_role})`
-  }
-  if (task.assigned_user_name) {
-    return task.assigned_user_name
-  }
-  if (task.assigned_role) {
-    return task.assigned_role
-  }
-
-  return 'Unassigned'
-}
-
 function formatQaTaskHistoryEntry(entry: Record<string, string>) {
   const timestamp = entry.timestamp ? `${entry.timestamp}: ` : ''
   const action = labelizeValue(entry.action ?? 'updated')
@@ -10180,20 +12755,6 @@ function formatQaTaskHistoryEntry(entry: Record<string, string>) {
   }
 
   return `${timestamp}${action}.`
-}
-
-function formatFileSize(value?: number) {
-  if (!value || value <= 0) {
-    return '0 B'
-  }
-  if (value < 1024) {
-    return `${value} B`
-  }
-  if (value < 1024 * 1024) {
-    return `${(value / 1024).toFixed(1)} KB`
-  }
-
-  return `${(value / (1024 * 1024)).toFixed(1)} MB`
 }
 
 function appendSummary(existing: string | undefined, note: string) {

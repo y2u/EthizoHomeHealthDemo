@@ -1,4 +1,43 @@
-import type { AppDataset, AppUser, Assessment, AuditEvent, Claim, Episode, EvvRecord, Patient, PhysicianOrder, QaTask, Referral, ReferralDocument, SecuritySettings, SessionActivity, Visit } from './types'
+import type {
+  AppDataset,
+  AppUser,
+  Assessment,
+  AideSupervisionEvent,
+  AuditEvent,
+  CaseConference,
+  Claim,
+  ClaimTransaction,
+  CoderReviewItem,
+  CommunicationLogEntry,
+  DmeSupplyOrder,
+  EligibilityCheck,
+  Episode,
+  EpisodeInsightSummary,
+  EvvRecord,
+  FaxMessage,
+  IncidentReport,
+  InfectionLog,
+  OasisSubmission,
+  Patient,
+  PatientAllergy,
+  PatientComplianceDocument,
+  PatientMedication,
+  PatientNotice,
+  PayerAuthorization,
+  PhysicianOrder,
+  PlanOfCare,
+  QaTask,
+  QapiProject,
+  QualityMetricsSummary,
+  Referral,
+  ReferralDocument,
+  RemittancePosting,
+  SecuritySettings,
+  SessionActivity,
+  SurveyReadinessSummary,
+  VerbalOrder,
+  Visit,
+} from './types'
 
 const patients: Patient[] = [
   {
@@ -143,6 +182,274 @@ const physicianOrders: PhysicianOrder[] = [
     signer_name: 'Dr. Alexis Monroe',
     order_summary: 'Admission physician order packet for planned SOC on 2026-04-19.',
     order_note: 'Initial admission order packet signed and ready for SOC activation.',
+  },
+]
+
+const patientComplianceDocuments: PatientComplianceDocument[] = [
+  {
+    id: 1,
+    patient_id: 1,
+    episode_id: 1,
+    document_type: 'consent',
+    status: 'signed',
+    signed_at: '2026-04-19 08:35:00',
+    delivery_method: 'tablet_signature',
+    notes: 'Admission consent signed during SOC.',
+  },
+  {
+    id: 2,
+    patient_id: 1,
+    episode_id: 1,
+    document_type: 'hipaa_acknowledgement',
+    status: 'signed',
+    signed_at: '2026-04-19 08:36:00',
+    delivery_method: 'tablet_signature',
+    notes: 'HIPAA acknowledgement reviewed with patient and spouse.',
+  },
+  {
+    id: 3,
+    patient_id: 1,
+    episode_id: 1,
+    document_type: 'patient_rights',
+    status: 'signed',
+    signed_at: '2026-04-19 08:38:00',
+    delivery_method: 'tablet_signature',
+    notes: 'Patient rights and grievance process reviewed.',
+  },
+  {
+    id: 4,
+    patient_id: 1,
+    episode_id: 1,
+    document_type: 'advance_directive',
+    status: 'reviewed',
+    signed_at: '2026-04-19 08:40:00',
+    delivery_method: 'verbal_review',
+    notes: 'Existing advance directive confirmed with spouse.',
+  },
+  {
+    id: 5,
+    patient_id: 1,
+    episode_id: 1,
+    document_type: 'emergency_preparedness_ack',
+    status: 'signed',
+    signed_at: '2026-04-19 08:42:00',
+    delivery_method: 'tablet_signature',
+    notes: 'Emergency plan, backup contacts, and evacuation instructions reviewed.',
+  },
+]
+
+const patientNotices: PatientNotice[] = [
+  {
+    id: 1,
+    patient_id: 1,
+    episode_id: 1,
+    notice_type: 'HHCCN',
+    status: 'delivered_signed',
+    reason: 'Routine home health coverage notification at admission.',
+    billing_impact: 'No claim hold; documentation retained in chart.',
+    delivered_at: '2026-04-19 08:45:00',
+    signed_at: '2026-04-19 08:46:00',
+  },
+  {
+    id: 2,
+    patient_id: 1,
+    episode_id: 1,
+    notice_type: 'NOMNC',
+    status: 'not_due',
+    reason: 'Episode is active and discharge is not scheduled.',
+    billing_impact: 'Track before discharge planning.',
+  },
+]
+
+const patientMedications: PatientMedication[] = [
+  {
+    id: 1,
+    patient_id: 1,
+    episode_id: 1,
+    medication_name: 'Furosemide',
+    dosage: '40 mg',
+    route: 'PO',
+    frequency: 'Daily',
+    start_date: '2026-04-15',
+    status: 'active',
+    high_risk: true,
+    teaching_completed: true,
+    reconciled_at: '2026-04-19 09:05:00',
+    prescriber_name: 'Dr. Hayes',
+    change_reason: 'Hospital discharge medication reconciliation completed.',
+  },
+  {
+    id: 2,
+    patient_id: 1,
+    episode_id: 1,
+    medication_name: 'Metoprolol Succinate',
+    dosage: '25 mg',
+    route: 'PO',
+    frequency: 'Daily',
+    start_date: '2026-04-15',
+    status: 'active',
+    high_risk: false,
+    teaching_completed: true,
+    reconciled_at: '2026-04-19 09:05:00',
+    prescriber_name: 'Dr. Hayes',
+  },
+]
+
+const patientAllergies: PatientAllergy[] = [
+  {
+    id: 1,
+    patient_id: 1,
+    allergen: 'Penicillin',
+    reaction: 'Rash',
+    severity: 'moderate',
+    verified_at: '2026-04-19 09:00:00',
+  },
+]
+
+const verbalOrders: VerbalOrder[] = [
+  {
+    id: 1,
+    episode_id: 1,
+    physician_name: 'Dr. Hayes',
+    order_source: 'phone',
+    order_summary: 'Add SN visit for CHF weight gain assessment and medication teaching.',
+    ordered_service: 'SN PRN visit',
+    received_by: 'Nina Clinician',
+    read_back_completed: true,
+    received_at: '2026-04-21 15:10:00',
+    sent_for_signature_at: '2026-04-21 15:20:00',
+    status: 'sent_for_signature',
+  },
+]
+
+const aideSupervisionEvents: AideSupervisionEvent[] = [
+  {
+    id: 1,
+    episode_id: 1,
+    aide_name: 'Lena Aide',
+    supervising_clinician: 'Nina Clinician',
+    care_plan_tasks: 'Bathing assistance, safe transfer cueing, meal setup reminders.',
+    supervision_type: 'onsite',
+    supervised_at: '2026-04-24 10:30:00',
+    next_due_at: '2026-05-08 10:30:00',
+    status: 'completed',
+    findings: 'Aide followed care plan and patient tolerated tasks well.',
+  },
+]
+
+const incidentReports: IncidentReport[] = [
+  {
+    id: 1,
+    patient_id: 1,
+    episode_id: 1,
+    event_type: 'hospitalization_risk_follow_up',
+    severity: 'moderate',
+    occurred_at: '2026-04-23 18:00:00',
+    description: 'Spouse reported increased shortness of breath; clinician contacted physician and reinforced action plan.',
+    follow_up_owner: 'RN Case Manager',
+    follow_up_due_at: '2026-04-24 12:00:00',
+    qapi_linked: true,
+    status: 'monitoring',
+  },
+]
+
+const infectionLogs: InfectionLog[] = [
+  {
+    id: 1,
+    patient_id: 1,
+    episode_id: 1,
+    infection_type: 'none_active_surveillance',
+    identified_at: '2026-04-19 09:20:00',
+    source: 'SOC screening',
+    intervention_summary: 'No active infection; standard hand hygiene and symptom monitoring taught.',
+    physician_notified: false,
+    qapi_linked: false,
+    status: 'closed',
+  },
+]
+
+const payerAuthorizations: PayerAuthorization[] = [
+  {
+    id: 1,
+    episode_id: 1,
+    payer_type: 'Medicare',
+    authorization_number: 'MEDICARE-NOT-REQUIRED',
+    authorized_visits: 18,
+    used_visits: 3,
+    effective_date: '2026-04-19',
+    expiration_date: '2026-06-17',
+    status: 'approved',
+    verification_notes: 'Traditional Medicare eligibility verified; authorization not required, visit budget tracked for utilization.',
+  },
+]
+
+const eligibilityChecks: EligibilityCheck[] = [
+  {
+    id: 1,
+    patient_id: 1,
+    episode_id: 1,
+    payer_type: 'Medicare',
+    check_status: 'eligible',
+    checked_at: '2026-04-18 11:20:00',
+    coverage_summary: 'Part A active. Home health benefit available.',
+    response_reference: 'ELG-DEMO-20260418-001',
+  },
+]
+
+const claimTransactions: ClaimTransaction[] = [
+  {
+    id: 1,
+    claim_id: 1,
+    episode_id: 1,
+    transaction_type: '837I',
+    transaction_status: 'accepted',
+    payer_control_number: 'PCN-772910',
+    payload_summary: 'NOA transaction generated from SOC and accepted in clearinghouse sandbox.',
+    response_summary: '277CA accepted with no front-end edits.',
+    transmitted_at: '2026-04-22 09:00:00',
+  },
+]
+
+const remittancePostings: RemittancePosting[] = [
+  {
+    id: 1,
+    claim_id: 1,
+    episode_id: 1,
+    era_reference: 'ERA-DEMO-0429',
+    payment_amount: 0,
+    adjustment_amount: 0,
+    reason_codes: 'Informational NOA acknowledgement only.',
+    posted_at: '2026-04-29 10:15:00',
+    reconciliation_status: 'posted',
+  },
+]
+
+const dmeSupplyOrders: DmeSupplyOrder[] = [
+  {
+    id: 1,
+    episode_id: 1,
+    item_name: 'Digital scale',
+    order_type: 'DME',
+    status: 'delivered',
+    ordered_at: '2026-04-19 11:00:00',
+    delivered_at: '2026-04-20 14:00:00',
+    usage_documented: true,
+    billing_relevance: 'Supports CHF daily weight monitoring plan; non-billable demo item.',
+    plan_of_care_linked: true,
+  },
+]
+
+const caseConferences: CaseConference[] = [
+  {
+    id: 1,
+    episode_id: 1,
+    conference_date: '2026-04-26 13:00:00',
+    participants: 'RN Case Manager, PT, QA Reviewer, Scheduler',
+    decisions: 'Continue SN 2w1 then 1w3, PT evaluation, monitor CHF action-plan adherence.',
+    follow_up_owner: 'RN Case Manager',
+    follow_up_due_at: '2026-05-03 13:00:00',
+    cadence: 'weekly',
+    status: 'completed',
   },
 ]
 
@@ -295,6 +602,248 @@ const qaTasks: QaTask[] = [
     assigned_role: 'Billing',
     assigned_user_name: 'Bianca Billing',
     due_at: '2026-04-23 12:00:00',
+  },
+]
+
+const oasisSubmissions: OasisSubmission[] = [
+  {
+    id: 1,
+    episode_id: 1,
+    assessment_id: 1,
+    submission_status: 'ready',
+    iqies_ready: true,
+    submission_reference: 'IQIES-DEMO-001',
+    readiness_notes: 'Submission package is ready for demo export.',
+  },
+]
+
+const planOfCares: PlanOfCare[] = [
+  {
+    id: 1,
+    episode_id: 1,
+    assessment_id: 1,
+    physician_order_id: 1,
+    version_number: 1,
+    review_status: 'physician_reviewed',
+    effective_date: '2026-04-19',
+    plan_summary: '485-ready plan of care for chronic diastolic heart failure with SN and PT disciplines.',
+    goal_summary: 'Prevent exacerbation, reinforce medication adherence, and improve safe mobility.',
+    intervention_summary: 'SN medication review and CHF teaching, PT mobility and endurance support, caregiver reinforcement.',
+    printable_content: 'ETHIZO HOME HEALTH CARE DEMO - PLAN OF CARE (485 READY)',
+    physician_review_note: 'Reviewed against signed admission orders.',
+    approved_at: '2026-04-16 14:30:00',
+  },
+]
+
+const coderReviewItems: CoderReviewItem[] = [
+  {
+    id: 1,
+    episode_id: 1,
+    claim_id: 2,
+    assessment_id: 1,
+    category: 'documentation',
+    status: 'open',
+    priority: 'medium',
+    title: 'Release documentation hold before final billing',
+    details: 'Completed visit documentation must be QA-locked before the episode claim can move forward.',
+    recommendation: 'Lock SOC documentation and verify chart completeness before claim submission.',
+  },
+]
+
+const communicationLogEntries: CommunicationLogEntry[] = [
+  {
+    id: 1,
+    episode_id: 1,
+    entry_type: 'provider_call',
+    contact_name: 'Dr. Alexis Monroe',
+    contact_role: 'Referring provider',
+    method: 'phone',
+    topic: 'CHF symptom update after SOC',
+    outcome: 'Provider requested continued daily weights and follow-up if edema worsens.',
+    follow_up_owner: 'Nina Clinician',
+    follow_up_due_at: '2026-04-22 10:00:00',
+    status: 'follow_up_due',
+    created: '2026-04-19 11:05:00',
+  },
+]
+
+const faxMessages: FaxMessage[] = [
+  {
+    id: 1,
+    referral_id: 1,
+    source_name: 'Northside Hospital Intake Fax',
+    from_number: '404-555-0130',
+    subject: 'Referral packet for Eleanor Bishop',
+    packet_type: 'referral_packet',
+    routing_status: 'converted_to_referral',
+    received_at: '2026-04-15 08:15:00',
+    attachment_note: 'Discharge summary, face-to-face note, and signed orders packet received.',
+    linked_document_count: 2,
+    route_note: 'Converted into referral 1 and attached to admission review.',
+  },
+]
+
+const qapiProjects: QapiProject[] = [
+  {
+    id: 1,
+    title: 'Reduce documentation release lag',
+    measure_name: 'Documentation timeliness',
+    owner_name: 'Quinn QA Reviewer',
+    review_cadence: 'monthly',
+    status: 'active',
+    target_value: '95%',
+    current_value: '82%',
+    intervention_plan: 'Tighten QA release expectations for SOC and week-one visits.',
+    evidence_summary: 'Open QA and billing hold review attached to April pilot data.',
+    linked_task_ids: [1, 2],
+    linked_audit_event_ids: [2, 3],
+    last_reviewed_at: '2026-04-29 09:00:00',
+  },
+]
+
+const qualityMetricsSummary: QualityMetricsSummary = {
+  period_key: 'all',
+  metrics: [
+    { key: 'documentation_timeliness', label: 'Documentation timeliness', score: 82, numerator: 9, denominator: 11, trend_value: 82, note: 'Locked documentation after QA release.' },
+    { key: 'qa_closure_timeliness', label: 'QA closure timeliness', score: 76, numerator: 13, denominator: 17, trend_value: 76, note: 'Resolved QA tasks on or before due date.' },
+    { key: 'hospitalization_follow_up', label: 'Hospitalization-risk follow-up', score: 88, numerator: 7, denominator: 8, trend_value: 88, note: 'Elevated-risk assessments with documented follow-up.' },
+    { key: 'timely_soc', label: 'Timely start of care', score: 100, numerator: 1, denominator: 1, trend_value: 100, note: 'SOC documented within two days of cert start.' },
+    { key: 'utilization_preservation', label: 'Utilization preservation', score: 60, numerator: 3, denominator: 5, trend_value: 60, note: 'Episodes not currently projected into LUPA-risk territory.' },
+  ],
+  history: [
+    {
+      id: 1,
+      metric_key: 'documentation_timeliness',
+      metric_label: 'Documentation timeliness',
+      period_key: 'all',
+      score: 82,
+      numerator: 9,
+      denominator: 11,
+      trend_value: 82,
+      notes: 'April capture',
+      captured_at: '2026-04-29 09:30:00',
+    },
+  ],
+}
+
+const surveyReadinessSummary: SurveyReadinessSummary = {
+  period_key: 'current',
+  generated_at: '2026-04-29 09:45:00',
+  category_scores: [
+    {
+      key: 'patient_rights',
+      label: 'Patient rights and notices',
+      status: 'green',
+      score: 96,
+      issue_count: 0,
+      summary: 'Admission consent, HIPAA acknowledgement, patient rights, and emergency preparedness packet are complete.',
+    },
+    {
+      key: 'orders',
+      label: 'Orders and signatures',
+      status: 'yellow',
+      score: 78,
+      issue_count: 1,
+      summary: 'One verbal order is awaiting physician signature follow-up.',
+    },
+    {
+      key: 'aide_supervision',
+      label: 'Aide supervision',
+      status: 'green',
+      score: 92,
+      issue_count: 0,
+      summary: 'Aide supervision is current for the active episode.',
+    },
+    {
+      key: 'incidents_infections',
+      label: 'Incidents and infections',
+      status: 'yellow',
+      score: 82,
+      issue_count: 1,
+      summary: 'One hospitalization-risk follow-up remains under monitoring and is linked to QAPI.',
+    },
+    {
+      key: 'authorization',
+      label: 'Eligibility and authorization',
+      status: 'green',
+      score: 94,
+      issue_count: 0,
+      summary: 'Eligibility is verified and authorization tracking is current.',
+    },
+    {
+      key: 'documentation',
+      label: 'Documentation integrity',
+      status: 'yellow',
+      score: 84,
+      issue_count: 2,
+      summary: 'QA should continue monitoring documentation lock timing and late chart completion.',
+    },
+  ],
+  open_counts: {
+    missing_compliance_documents: 0,
+    unsigned_notices: 0,
+    open_verbal_orders: 1,
+    overdue_aide_supervision: 0,
+    open_incidents: 1,
+    open_infections: 0,
+    auth_blockers: 0,
+  },
+  history: [
+    {
+      id: 1,
+      period_key: 'current',
+      category_scores: [],
+      open_counts: {
+        missing_compliance_documents: 0,
+        unsigned_notices: 0,
+        open_verbal_orders: 1,
+        overdue_aide_supervision: 0,
+        open_incidents: 1,
+        open_infections: 0,
+        auth_blockers: 0,
+      },
+      generated_at: '2026-04-29 09:45:00',
+    },
+  ],
+}
+
+const episodeInsights: EpisodeInsightSummary[] = [
+  {
+    episode_id: 1,
+    clinical_decision_support: [
+      {
+        severity: 'medium',
+        source: 'assessment',
+        summary: 'Hospitalization risk is elevated and needs a clearly documented follow-up plan in ongoing visits.',
+        resolution_hint: 'Document escalation triggers, monitoring cadence, and provider follow-up in the next chart.',
+      },
+    ],
+    documentation_integrity: {
+      episode_id: 1,
+      assessment_score: 100,
+      visit_score: 82,
+      overall_score: 91,
+      blockers: [],
+      warnings: ['PT visit documentation is still pending discipline-specific mobility detail.'],
+    },
+    utilization_risk: {
+      episode_id: 1,
+      period_number: 1,
+      projected_visits: 4,
+      threshold_visits: 5,
+      risk_level: 'high',
+      warning_note: 'Projected first-period utilization is 4 visits against a 5-visit threshold.',
+      recommended_action: 'Schedule and preserve the opening PT cadence to avoid LUPA exposure in the demo period.',
+    },
+    pdgm_breakdown: {
+      group_code: 'MMTA-CARDIAC-INSTITUTIONAL-EARLY-MEDIUM-LOW',
+      clinical_group: 'MMTA-CARDIAC',
+      timing: 'EARLY',
+      functional_level: 'MEDIUM',
+      comorbidity_adjustment: 'LOW',
+      admission_source: 'INSTITUTIONAL',
+      explanation: 'PDGM grouped to cardiac/institutional/early/medium/low from the finalized assessment and hospital-discharge intake context.',
+    },
   },
 ]
 
@@ -460,12 +1009,35 @@ export function createDemoDataset(): AppDataset {
     referrals: structuredClone(referrals),
     referralDocuments: structuredClone(referralDocuments),
     physicianOrders: structuredClone(physicianOrders),
+    patientComplianceDocuments: structuredClone(patientComplianceDocuments),
+    patientNotices: structuredClone(patientNotices),
+    patientMedications: structuredClone(patientMedications),
+    patientAllergies: structuredClone(patientAllergies),
+    verbalOrders: structuredClone(verbalOrders),
+    aideSupervisionEvents: structuredClone(aideSupervisionEvents),
+    incidentReports: structuredClone(incidentReports),
+    infectionLogs: structuredClone(infectionLogs),
+    payerAuthorizations: structuredClone(payerAuthorizations),
+    eligibilityChecks: structuredClone(eligibilityChecks),
+    claimTransactions: structuredClone(claimTransactions),
+    remittancePostings: structuredClone(remittancePostings),
+    dmeSupplyOrders: structuredClone(dmeSupplyOrders),
+    caseConferences: structuredClone(caseConferences),
+    surveyReadinessSummary: structuredClone(surveyReadinessSummary),
     episodes: structuredClone(episodes),
     assessments: structuredClone(assessments),
     visits: structuredClone(visits),
     evvRecords: structuredClone(evvRecords),
     claims: structuredClone(claims),
     qaTasks: structuredClone(qaTasks),
+    oasisSubmissions: structuredClone(oasisSubmissions),
+    planOfCares: structuredClone(planOfCares),
+    coderReviewItems: structuredClone(coderReviewItems),
+    communicationLogEntries: structuredClone(communicationLogEntries),
+    faxMessages: structuredClone(faxMessages),
+    qapiProjects: structuredClone(qapiProjects),
+    qualityMetricsSummary: structuredClone(qualityMetricsSummary),
+    episodeInsights: structuredClone(episodeInsights),
     securitySettings: structuredClone(securitySettings),
     auditEvents: structuredClone(auditEvents),
     adminUsers: structuredClone(adminUsers),

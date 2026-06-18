@@ -155,6 +155,404 @@ export interface PhysicianOrder {
   order_note?: string
 }
 
+export interface PatientComplianceDocument {
+  id: number
+  patient_id: number
+  episode_id?: number | null
+  document_type: string
+  status: string
+  signed_at?: string | null
+  delivery_method?: string | null
+  notes?: string | null
+  created?: string
+  modified?: string
+}
+
+export interface PatientNotice {
+  id: number
+  patient_id: number
+  episode_id?: number | null
+  notice_type: string
+  status: string
+  reason?: string | null
+  billing_impact?: string | null
+  delivered_at?: string | null
+  signed_at?: string | null
+  created?: string
+  modified?: string
+}
+
+export interface PatientMedication {
+  id: number
+  patient_id: number
+  episode_id?: number | null
+  medication_name: string
+  dosage?: string | null
+  route?: string | null
+  frequency?: string | null
+  start_date?: string | null
+  end_date?: string | null
+  status: string
+  high_risk: boolean
+  teaching_completed: boolean
+  reconciled_at?: string | null
+  prescriber_name?: string | null
+  change_reason?: string | null
+  created?: string
+  modified?: string
+}
+
+export interface PatientAllergy {
+  id: number
+  patient_id: number
+  allergen: string
+  reaction?: string | null
+  severity?: string | null
+  verified_at?: string | null
+  created?: string
+  modified?: string
+}
+
+export interface VerbalOrder {
+  id: number
+  episode_id: number
+  physician_name: string
+  order_source?: string | null
+  order_summary: string
+  ordered_service?: string | null
+  received_by?: string | null
+  read_back_completed: boolean
+  received_at?: string | null
+  sent_for_signature_at?: string | null
+  physician_signed_at?: string | null
+  status: string
+  created?: string
+  modified?: string
+}
+
+export interface AideSupervisionEvent {
+  id: number
+  episode_id: number
+  aide_name: string
+  supervising_clinician?: string | null
+  care_plan_tasks?: string | null
+  supervision_type?: string | null
+  supervised_at?: string | null
+  next_due_at?: string | null
+  status: string
+  findings?: string | null
+  created?: string
+  modified?: string
+}
+
+export interface IncidentReport {
+  id: number
+  patient_id?: number | null
+  episode_id?: number | null
+  visit_id?: number | null
+  event_type: string
+  severity?: string | null
+  occurred_at?: string | null
+  description?: string | null
+  follow_up_owner?: string | null
+  follow_up_due_at?: string | null
+  qapi_linked: boolean
+  status: string
+  created?: string
+  modified?: string
+}
+
+export interface InfectionLog {
+  id: number
+  patient_id?: number | null
+  episode_id?: number | null
+  infection_type: string
+  identified_at?: string | null
+  source?: string | null
+  intervention_summary?: string | null
+  physician_notified: boolean
+  qapi_linked: boolean
+  status: string
+  created?: string
+  modified?: string
+}
+
+export interface PayerAuthorization {
+  id: number
+  episode_id: number
+  payer_type: string
+  authorization_number?: string | null
+  authorized_visits?: number | null
+  used_visits: number
+  effective_date?: string | null
+  expiration_date?: string | null
+  status: string
+  verification_notes?: string | null
+  created?: string
+  modified?: string
+}
+
+export interface EligibilityCheck {
+  id: number
+  patient_id?: number | null
+  episode_id?: number | null
+  payer_type: string
+  check_status: string
+  checked_at?: string | null
+  coverage_summary?: string | null
+  response_reference?: string | null
+  created?: string
+  modified?: string
+}
+
+export interface ClaimTransaction {
+  id: number
+  claim_id?: number | null
+  episode_id?: number | null
+  transaction_type: string
+  transaction_status: string
+  payer_control_number?: string | null
+  payload_summary?: string | null
+  response_summary?: string | null
+  transmitted_at?: string | null
+  created?: string
+  modified?: string
+}
+
+export interface RemittancePosting {
+  id: number
+  claim_id?: number | null
+  episode_id?: number | null
+  era_reference?: string | null
+  payment_amount?: number | string | null
+  adjustment_amount?: number | string | null
+  reason_codes?: string | null
+  posted_at?: string | null
+  reconciliation_status: string
+  created?: string
+  modified?: string
+}
+
+export interface DmeSupplyOrder {
+  id: number
+  episode_id: number
+  item_name: string
+  order_type: string
+  status: string
+  ordered_at?: string | null
+  delivered_at?: string | null
+  usage_documented: boolean
+  billing_relevance?: string | null
+  plan_of_care_linked: boolean
+  created?: string
+  modified?: string
+}
+
+export interface CaseConference {
+  id: number
+  episode_id: number
+  conference_date?: string | null
+  participants?: string | null
+  decisions?: string | null
+  follow_up_owner?: string | null
+  follow_up_due_at?: string | null
+  cadence?: string | null
+  status: string
+  created?: string
+  modified?: string
+}
+
+export interface SurveyReadinessCategory {
+  key: string
+  label: string
+  status: string
+  score: number
+  issue_count: number
+  summary: string
+}
+
+export interface SurveyReadinessSnapshot {
+  id?: number
+  period_key: string
+  category_scores: SurveyReadinessCategory[] | string
+  open_counts: Record<string, number> | string
+  generated_at?: string | null
+  created?: string
+  modified?: string
+}
+
+export interface SurveyReadinessSummary {
+  period_key: string
+  generated_at: string
+  category_scores: SurveyReadinessCategory[]
+  open_counts: Record<string, number>
+  history: SurveyReadinessSnapshot[]
+}
+
+export interface OasisSubmission {
+  id: number
+  episode_id: number
+  assessment_id?: number | null
+  submission_status: string
+  iqies_ready: boolean
+  export_payload?: string | Record<string, unknown> | null
+  readiness_notes?: string | null
+  submission_reference?: string | null
+  submitted_at?: string | null
+  acknowledged_at?: string | null
+  acknowledgment_status?: string | null
+  acknowledgment_note?: string | null
+  rejection_note?: string | null
+}
+
+export interface PlanOfCare {
+  id: number
+  episode_id: number
+  assessment_id?: number | null
+  physician_order_id?: number | null
+  version_number: number
+  review_status: string
+  effective_date?: string | null
+  plan_summary?: string | null
+  goal_summary?: string | null
+  intervention_summary?: string | null
+  printable_content?: string | null
+  physician_review_note?: string | null
+  approved_at?: string | null
+}
+
+export interface CoderReviewItem {
+  id: number
+  episode_id: number
+  claim_id?: number | null
+  assessment_id?: number | null
+  category: string
+  status: string
+  priority: string
+  title: string
+  details?: string | null
+  recommendation?: string | null
+  correction_note?: string | null
+  resolved_at?: string | null
+}
+
+export interface CommunicationLogEntry {
+  id: number
+  episode_id: number
+  visit_id?: number | null
+  entry_type: string
+  contact_name: string
+  contact_role?: string | null
+  method: string
+  topic: string
+  outcome?: string | null
+  follow_up_owner?: string | null
+  follow_up_due_at?: string | null
+  status: string
+  created?: string
+}
+
+export interface FaxMessage {
+  id: number
+  referral_id?: number | null
+  source_name: string
+  from_number?: string | null
+  subject?: string | null
+  packet_type: string
+  routing_status: string
+  received_at: string
+  attachment_note?: string | null
+  linked_document_count: number
+  route_note?: string | null
+}
+
+export interface QapiProject {
+  id: number
+  title: string
+  measure_name: string
+  owner_name: string
+  review_cadence: string
+  status: string
+  target_value?: string | null
+  current_value?: string | null
+  intervention_plan?: string | null
+  evidence_summary?: string | null
+  linked_task_ids?: number[] | string | null
+  linked_audit_event_ids?: number[] | string | null
+  last_reviewed_at?: string | null
+}
+
+export interface QualityMetricSnapshot {
+  id?: number
+  metric_key: string
+  metric_label: string
+  period_key: string
+  score: number
+  numerator: number
+  denominator: number
+  trend_value?: number | null
+  notes?: string | null
+  captured_at?: string | null
+}
+
+export interface QualityMetricsSummary {
+  period_key: string
+  metrics: Array<{
+    key: string
+    label: string
+    score: number
+    numerator: number
+    denominator: number
+    trend_value?: number | null
+    note?: string
+  }>
+  history: QualityMetricSnapshot[]
+}
+
+export interface UtilizationRiskSnapshot {
+  episode_id: number
+  period_number: number
+  projected_visits: number
+  threshold_visits: number
+  risk_level: string
+  warning_note?: string | null
+  recommended_action?: string | null
+}
+
+export interface ClinicalDecisionAlert {
+  severity: string
+  source: string
+  summary: string
+  resolution_hint: string
+}
+
+export interface DocumentationIntegritySummary {
+  episode_id: number
+  assessment_score: number
+  visit_score: number
+  overall_score: number
+  blockers: string[]
+  warnings: string[]
+}
+
+export interface PdgmBreakdown {
+  group_code: string
+  clinical_group: string
+  timing: string
+  functional_level: string
+  comorbidity_adjustment: string
+  admission_source: string
+  explanation: string
+}
+
+export interface EpisodeInsightSummary {
+  episode_id: number
+  clinical_decision_support: ClinicalDecisionAlert[]
+  documentation_integrity: DocumentationIntegritySummary
+  utilization_risk: UtilizationRiskSnapshot
+  pdgm_breakdown: PdgmBreakdown
+}
+
 export interface EpisodeAdmissionSnapshot {
   referral_source?: string
   admission_source?: string
@@ -333,6 +731,7 @@ export interface QaTask {
   last_escalated_at?: string
   is_overdue?: boolean
   due_at?: string
+  resolved_at?: string
 }
 
 export interface EpisodeReadiness {
@@ -372,12 +771,35 @@ export interface AppDataset {
   referrals: Referral[]
   referralDocuments: ReferralDocument[]
   physicianOrders: PhysicianOrder[]
+  patientComplianceDocuments: PatientComplianceDocument[]
+  patientNotices: PatientNotice[]
+  patientMedications: PatientMedication[]
+  patientAllergies: PatientAllergy[]
+  verbalOrders: VerbalOrder[]
+  aideSupervisionEvents: AideSupervisionEvent[]
+  incidentReports: IncidentReport[]
+  infectionLogs: InfectionLog[]
+  payerAuthorizations: PayerAuthorization[]
+  eligibilityChecks: EligibilityCheck[]
+  claimTransactions: ClaimTransaction[]
+  remittancePostings: RemittancePosting[]
+  dmeSupplyOrders: DmeSupplyOrder[]
+  caseConferences: CaseConference[]
+  surveyReadinessSummary: SurveyReadinessSummary
   episodes: Episode[]
   assessments: Assessment[]
   visits: Visit[]
   evvRecords: EvvRecord[]
   claims: Claim[]
   qaTasks: QaTask[]
+  oasisSubmissions: OasisSubmission[]
+  planOfCares: PlanOfCare[]
+  coderReviewItems: CoderReviewItem[]
+  communicationLogEntries: CommunicationLogEntry[]
+  faxMessages: FaxMessage[]
+  qapiProjects: QapiProject[]
+  qualityMetricsSummary: QualityMetricsSummary
+  episodeInsights: EpisodeInsightSummary[]
   securitySettings: SecuritySettings
   auditEvents: AuditEvent[]
   adminUsers: AppUser[]
