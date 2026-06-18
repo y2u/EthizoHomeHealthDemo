@@ -50,4 +50,22 @@ describe('normalizers', () => {
     expect(task.base_priority).toBe('medium')
     expect(task.is_overdue).toBe(true)
   })
+
+  it('does not mark completed past-due tasks as overdue', () => {
+    vi.setSystemTime(new Date('2026-04-29T12:00:00Z'))
+
+    const [task] = normalizeQaTasksForUi([
+      {
+        id: 2,
+        episode_id: 1,
+        task_type: 'order_followup',
+        title: 'Completed order follow-up',
+        status: 'completed',
+        priority: 'medium',
+        due_at: '2026-04-29T11:59:00',
+      },
+    ])
+
+    expect(task.is_overdue).toBe(false)
+  })
 })

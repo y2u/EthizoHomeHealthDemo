@@ -123,7 +123,7 @@ function enrichQaTaskForUi(task: QaTask): QaTask {
 
   if (dueAt) {
     const dueDate = dueAt.slice(0, 10)
-    if (dueAt < now) {
+    if (task.status === 'open' && dueAt < now) {
       isOverdue = true
       priority = 'high'
       escalationStatus = task.assigned_user_name || task.assigned_role ? 'overdue_assigned' : 'overdue_unassigned'
