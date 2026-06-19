@@ -28,6 +28,18 @@ class EpisodeComplianceControllerTest extends TestCase
         ]);
         $this->assertResponseCode(201);
 
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['episode_id']);
+        $this->assertSame('Skilled nursing wound assessment', $body['data']['ordered_service']);
+        $this->assertTrue((bool)$body['data']['read_back_completed']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/episodes/1/verbal-orders');
+        $this->assertResponseOk();
+
+        $this->assertListContains('ordered_service', 'Skilled nursing wound assessment');
+
         $this->loginApiUser();
         $this->post('/api/v1/episodes/1/aide-supervision/add', [
             'aide_name' => 'Hannah Aide',
@@ -41,6 +53,18 @@ class EpisodeComplianceControllerTest extends TestCase
         ]);
         $this->assertResponseCode(201);
 
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['episode_id']);
+        $this->assertSame('Hannah Aide', $body['data']['aide_name']);
+        $this->assertTrue((bool)$body['data']['care_plan_reviewed']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/episodes/1/aide-supervision');
+        $this->assertResponseOk();
+
+        $this->assertListContains('aide_name', 'Hannah Aide');
+
         $this->loginApiUser();
         $this->post('/api/v1/episodes/1/incidents/add', [
             'incident_type' => 'fall',
@@ -52,6 +76,42 @@ class EpisodeComplianceControllerTest extends TestCase
             'status' => 'open',
         ]);
         $this->assertResponseCode(201);
+
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['patient_id']);
+        $this->assertSame(1, $body['data']['episode_id']);
+        $this->assertSame('fall', $body['data']['incident_type']);
+        $this->assertFalse((bool)$body['data']['qapi_linked']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/episodes/1/incidents');
+        $this->assertResponseOk();
+
+        $this->assertListContains('incident_type', 'fall');
+
+        $this->loginApiUser();
+        $this->post('/api/v1/episodes/1/infections/add', [
+            'infection_type' => 'UTI symptoms',
+            'identified_at' => '2026-04-22 09:15:00',
+            'precautions' => 'Monitor symptoms and reinforce hydration teaching.',
+            'reported_to' => 'Dr. Alexis Monroe',
+            'status' => 'monitoring',
+        ]);
+        $this->assertResponseCode(201);
+
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['patient_id']);
+        $this->assertSame(1, $body['data']['episode_id']);
+        $this->assertSame('UTI symptoms', $body['data']['infection_type']);
+        $this->assertSame('monitoring', $body['data']['status']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/episodes/1/infections');
+        $this->assertResponseOk();
+
+        $this->assertListContains('infection_type', 'UTI symptoms');
     }
 
     public function testAddEligibilityAuthorizationDmeSupplyOrderAndCaseConference(): void
@@ -69,6 +129,19 @@ class EpisodeComplianceControllerTest extends TestCase
         ]);
         $this->assertResponseCode(201);
 
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['patient_id']);
+        $this->assertSame(1, $body['data']['episode_id']);
+        $this->assertSame('Medicare', $body['data']['payer_type']);
+        $this->assertSame('active', $body['data']['eligibility_status']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/episodes/1/eligibility-checks');
+        $this->assertResponseOk();
+
+        $this->assertListContains('verification_reference', 'ELIG-123');
+
         $this->loginApiUser();
         $this->post('/api/v1/episodes/1/authorizations/add', [
             'authorization_number' => 'AUTH-123',
@@ -82,6 +155,20 @@ class EpisodeComplianceControllerTest extends TestCase
         ]);
         $this->assertResponseCode(201);
 
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['patient_id']);
+        $this->assertSame(1, $body['data']['episode_id']);
+        $this->assertSame('Medicare', $body['data']['payer_type']);
+        $this->assertSame('AUTH-123', $body['data']['authorization_number']);
+        $this->assertSame('approved', $body['data']['authorization_status']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/episodes/1/authorizations');
+        $this->assertResponseOk();
+
+        $this->assertListContains('authorization_number', 'AUTH-123');
+
         $this->loginApiUser();
         $this->post('/api/v1/episodes/1/dme-supply-orders/add', [
             'item_name' => 'Wound dressing kit',
@@ -94,6 +181,19 @@ class EpisodeComplianceControllerTest extends TestCase
         ]);
         $this->assertResponseCode(201);
 
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['patient_id']);
+        $this->assertSame(1, $body['data']['episode_id']);
+        $this->assertSame('Wound dressing kit', $body['data']['item_name']);
+        $this->assertTrue((bool)$body['data']['plan_of_care_linked']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/episodes/1/dme-supply-orders');
+        $this->assertResponseOk();
+
+        $this->assertListContains('item_name', 'Wound dressing kit');
+
         $this->loginApiUser();
         $this->post('/api/v1/episodes/1/case-conferences/add', [
             'conference_at' => '2026-04-23 14:00:00',
@@ -104,6 +204,33 @@ class EpisodeComplianceControllerTest extends TestCase
             'status' => 'completed',
         ]);
         $this->assertResponseCode(201);
+
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['episode_id']);
+        $this->assertSame('RN, PT, physician, caregiver', $body['data']['participants']);
+        $this->assertSame('completed', $body['data']['status']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/episodes/1/case-conferences');
+        $this->assertResponseOk();
+
+        $this->assertListContains('participants', 'RN, PT, physician, caregiver');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function jsonResponse(): array
+    {
+        return json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    private function assertListContains(string $key, mixed $expected): void
+    {
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertContains($expected, array_column($body['data'], $key));
     }
 
     private function ensureDemoEpisode(): void

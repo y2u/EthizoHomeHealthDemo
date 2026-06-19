@@ -27,6 +27,19 @@ class BillingComplianceControllerTest extends TestCase
         ]);
         $this->assertResponseCode(201);
 
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['claim_id']);
+        $this->assertSame('submission', $body['data']['transaction_type']);
+        $this->assertSame('accepted', $body['data']['transaction_status']);
+        $this->assertSame('TXN-123', $body['data']['transaction_reference']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/billing/claim-transactions');
+        $this->assertResponseOk();
+
+        $this->assertListContains('transaction_reference', 'TXN-123');
+
         $this->loginApiUser();
         $this->post('/api/v1/billing/remittance-postings/add', [
             'claim_id' => 1,
@@ -39,6 +52,33 @@ class BillingComplianceControllerTest extends TestCase
             'posting_note' => 'Payment posted from ERA.',
         ]);
         $this->assertResponseCode(201);
+
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['claim_id']);
+        $this->assertSame('ERA-123', $body['data']['era_reference']);
+        $this->assertSame('posted', $body['data']['posting_status']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/billing/remittance-postings');
+        $this->assertResponseOk();
+
+        $this->assertListContains('era_reference', 'ERA-123');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function jsonResponse(): array
+    {
+        return json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    private function assertListContains(string $key, mixed $expected): void
+    {
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertContains($expected, array_column($body['data'], $key));
     }
 
     private function ensureDemoClaim(): void

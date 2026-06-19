@@ -24,13 +24,47 @@ class PatientComplianceControllerTest extends TestCase
         ]);
         $this->assertResponseCode(201);
 
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['patient_id']);
+        $this->assertSame('patient_rights', $body['data']['document_type']);
+        $this->assertSame('signed', $body['data']['document_status']);
+
         $this->loginApiUser();
         $this->get('/api/v1/patients/1/compliance-documents');
         $this->assertResponseOk();
 
+        $this->assertListContains('document_type', 'patient_rights');
+    }
+
+    public function testAddAndListFormalNotice(): void
+    {
+        $this->ensureDemoEpisode();
+
+        $this->loginApiUser();
+        $this->post('/api/v1/patients/1/notices/add', [
+            'episode_id' => 1,
+            'notice_type' => 'HHCCN',
+            'notice_status' => 'signed',
+            'reason' => 'Change in covered services reviewed with patient.',
+            'delivered_at' => '2026-04-19 10:00:00',
+            'signed_at' => '2026-04-19 10:05:00',
+            'billing_impact' => 'No billing hold after signed notice.',
+        ]);
+        $this->assertResponseCode(201);
+
         $body = $this->jsonResponse();
         $this->assertTrue($body['success']);
-        $this->assertSame('patient_rights', $body['data'][0]['document_type']);
+        $this->assertSame(1, $body['data']['patient_id']);
+        $this->assertSame(1, $body['data']['episode_id']);
+        $this->assertSame('HHCCN', $body['data']['notice_type']);
+        $this->assertSame('signed', $body['data']['notice_status']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/patients/1/notices');
+        $this->assertResponseOk();
+
+        $this->assertListContains('notice_type', 'HHCCN');
     }
 
     public function testAddMedicationAndAllergy(): void
@@ -51,6 +85,19 @@ class PatientComplianceControllerTest extends TestCase
         ]);
         $this->assertResponseCode(201);
 
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['patient_id']);
+        $this->assertSame(1, $body['data']['episode_id']);
+        $this->assertSame('Furosemide', $body['data']['medication_name']);
+        $this->assertTrue((bool)$body['data']['high_risk']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/patients/1/medications');
+        $this->assertResponseOk();
+
+        $this->assertListContains('medication_name', 'Furosemide');
+
         $this->loginApiUser();
         $this->post('/api/v1/patients/1/allergies/add', [
             'allergen' => 'Penicillin',
@@ -59,6 +106,18 @@ class PatientComplianceControllerTest extends TestCase
             'verified_at' => '2026-04-19 09:25:00',
         ]);
         $this->assertResponseCode(201);
+
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertSame(1, $body['data']['patient_id']);
+        $this->assertSame('Penicillin', $body['data']['allergen']);
+        $this->assertSame('moderate', $body['data']['severity']);
+
+        $this->loginApiUser();
+        $this->get('/api/v1/patients/1/allergies');
+        $this->assertResponseOk();
+
+        $this->assertListContains('allergen', 'Penicillin');
     }
 
     /**
@@ -67,6 +126,13 @@ class PatientComplianceControllerTest extends TestCase
     private function jsonResponse(): array
     {
         return json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR);
+    }
+
+    private function assertListContains(string $key, mixed $expected): void
+    {
+        $body = $this->jsonResponse();
+        $this->assertTrue($body['success']);
+        $this->assertContains($expected, array_column($body['data'], $key));
     }
 
     private function ensureDemoEpisode(): void
