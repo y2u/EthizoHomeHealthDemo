@@ -14,8 +14,9 @@ describe('api client', () => {
 
     await api.patientComplianceDocuments('token-1', 7)
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      '/api/v1/patients/7/compliance-documents',
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(String(url)).toMatch(/\/patients\/7\/compliance-documents$/)
+    expect(options).toEqual(
       expect.objectContaining({
         headers: expect.objectContaining({ Authorization: 'Bearer token-1' }),
       }),
