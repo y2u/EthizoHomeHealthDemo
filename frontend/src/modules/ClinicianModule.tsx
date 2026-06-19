@@ -39,7 +39,7 @@ export function ClinicianModule({ controller }: ModuleProps) {
     <div className="module-stack">
                 <WorkspaceHeader
                   eyebrow="Clinician"
-                  title="Clinician Workspace"
+                  title="Clinician Visit Workspace"
                   subtitle="Schedule visits, complete documentation, and manage field actions from one focused workspace."
                   meta={
                     <>

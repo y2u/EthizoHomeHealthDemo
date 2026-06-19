@@ -12,6 +12,6 @@ function Harness() {
 describe('ClinicianModule', () => {
   it('renders clinician visit workspace', () => {
     renderApp(<Harness />)
-    expect(screen.getByText('Clinician Workspace')).toBeInTheDocument()
+    expect(screen.getByText('Clinician Visit Workspace')).toBeInTheDocument()
   })
 })
