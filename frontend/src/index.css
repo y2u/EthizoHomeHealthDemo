@@ -110,6 +110,7 @@ button {
   position: sticky;
   top: 24px;
   align-self: start;
+  max-height: calc(100vh - 48px);
   transition:
     padding 220ms ease,
     border-radius 220ms ease,
@@ -206,6 +207,12 @@ button {
 .module-list {
   display: grid;
   gap: 12px;
+  flex: 1 1 auto;
+  align-content: start;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 2px;
 }
 
 .brand-support,
@@ -1331,6 +1338,7 @@ tbody tr:hover td {
 
   .sidebar {
     position: static;
+    max-height: none;
   }
 
   .hero-grid {
