@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Api\V1;
 
+use App\Service\DemoCoverageService;
 use App\Service\HomeHealthWorkflowService;
 use InvalidArgumentException;
 use RuntimeException;
@@ -99,6 +100,23 @@ class EpisodesController extends ApiController
         return $this->respond([
             'success' => true,
             'data' => $summary,
+        ]);
+    }
+
+    public function insights(int $id)
+    {
+        try {
+            $insights = (new DemoCoverageService())->buildEpisodeInsights($id);
+        } catch (RuntimeException | InvalidArgumentException $exception) {
+            return $this->respond([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        return $this->respond([
+            'success' => true,
+            'data' => $insights,
         ]);
     }
 

@@ -118,6 +118,31 @@ class WorkflowControllerTest extends TestCase
         $this->assertSame('Dr. Alexis Monroe', $snapshot['referring_provider_name']);
         $this->assertSame('125 Peachtree View', $snapshot['service_address1']);
 
+        foreach (['consent', 'hipaa_acknowledgement', 'patient_rights', 'advance_directive', 'emergency_preparedness_ack'] as $documentType) {
+            $this->authorizeRequest();
+            $this->post('/api/v1/patients/1/compliance-documents/add', [
+                'document_type' => $documentType,
+                'document_status' => 'signed',
+                'signed_at' => '2026-04-18 09:00:00',
+                'source_name' => 'SOC admission packet',
+            ]);
+            $this->assertResponseCode(201);
+        }
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/patients/1/medications/add', [
+            'episode_id' => $episodeId,
+            'medication_name' => 'Furosemide',
+            'dosage' => '20 mg',
+            'frequency' => 'Daily',
+            'route' => 'Oral',
+            'high_risk' => true,
+            'teaching_completed' => true,
+            'last_reconciled_at' => '2026-04-19 09:20:00',
+            'change_note' => 'Medication profile reconciled at SOC.',
+        ]);
+        $this->assertResponseCode(201);
+
         $this->authorizeRequest();
         $this->post('/api/v1/assessments/add', [
             'episode_id' => $episodeId,
@@ -1534,6 +1559,225 @@ class WorkflowControllerTest extends TestCase
         $this->assertStringContainsString('Vitals is required before SN documentation can be submitted to QA.', $payload['message']);
     }
 
+    public function testCanPrepareOasisSubmissionGeneratePlanOfCareAndSyncCoderReview(): void
+    {
+        [$episodeId] = $this->createActivatedEpisode();
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/episodes/' . $episodeId . '/oasis-submissions/prepare', []);
+        $this->assertResponseCode(201);
+        $submission = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $this->assertSame('ready', $submission['submission_status']);
+        $this->assertTrue($submission['iqies_ready']);
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/oasis-submissions/' . $submission['id'] . '/update', [
+            'submission_status' => 'rejected',
+            'rejection_note' => 'Demo iQIES validation rejected the package for remapping.',
+        ]);
+        $this->assertResponseOk();
+        $updatedSubmission = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $this->assertSame('rejected', $updatedSubmission['submission_status']);
+        $this->assertSame('rejected', $updatedSubmission['acknowledgment_status']);
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/episodes/' . $episodeId . '/plan-of-care/generate', []);
+        $this->assertResponseCode(201);
+        $plan = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $this->assertSame($episodeId, $plan['episode_id']);
+        $this->assertStringContainsString('PLAN OF CARE', $plan['printable_content']);
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/episodes/' . $episodeId . '/coder-review/sync', []);
+        $this->assertResponseCode(201);
+        $items = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $this->assertNotEmpty($items);
+
+        $qaRejectionTask = TableRegistry::getTableLocator()->get('QaTasks')->find()
+            ->where([
+                'episode_id' => $episodeId,
+                'task_type' => 'oasis_submission_rejected',
+                'status' => 'open',
+            ])
+            ->first();
+        $this->assertNotNull($qaRejectionTask);
+    }
+
+    public function testCanRouteFaxInboxAddCommunicationLogAndCaptureQualityMetrics(): void
+    {
+        [$episodeId] = $this->createActivatedEpisode();
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/episodes/' . $episodeId . '/communication-log/add', [
+            'contact_name' => 'Dr. Alexis Monroe',
+            'contact_role' => 'Referring provider',
+            'method' => 'phone',
+            'topic' => 'Post-SOC follow-up',
+            'outcome' => 'Continue daily weights and escalate worsening edema.',
+            'follow_up_owner' => 'Nina Clinician',
+            'follow_up_due_at' => '2026-04-20 10:00:00',
+        ]);
+        $this->assertResponseCode(201);
+        $entry = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $this->assertSame('follow_up_due', $entry['status']);
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/fax-inbox/add', [
+            'source_name' => 'Piedmont Referral Fax',
+            'from_number' => '404-555-0120',
+            'subject' => 'Referral packet',
+            'packet_type' => 'referral_packet',
+            'received_at' => '2026-04-18 08:15:00',
+            'attachment_note' => 'Includes discharge summary and unsigned orders.',
+            'linked_document_count' => 2,
+        ]);
+        $this->assertResponseCode(201);
+        $fax = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/fax-inbox/' . $fax['id'] . '/route', [
+            'create_referral' => true,
+            'patient_id' => 1,
+            'admission_source' => 'Hospital discharge',
+            'payer_type' => 'Medicare',
+            'primary_diagnosis' => 'I50.32 Chronic diastolic heart failure',
+            'planned_soc_date' => '2026-04-20',
+            'requested_disciplines' => ['SN', 'PT'],
+            'route_note' => 'Converted packet into live referral intake.',
+        ]);
+        $this->assertResponseOk();
+        $routedFax = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $this->assertSame('converted_to_referral', $routedFax['routing_status']);
+        $this->assertNotEmpty($routedFax['referral_id']);
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/qapi-projects/add', [
+            'title' => 'Reduce chart release lag',
+            'measure_name' => 'Documentation timeliness',
+            'owner_name' => 'Quinn QA Reviewer',
+            'review_cadence' => 'monthly',
+            'status' => 'active',
+            'target_value' => '95%',
+            'current_value' => '82%',
+        ]);
+        $this->assertResponseCode(201);
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/quality-metrics/capture', ['period_key' => 'all']);
+        $this->assertResponseCode(201);
+        $qualitySummary = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $this->assertArrayHasKey('metrics', $qualitySummary);
+        $this->assertNotEmpty($qualitySummary['metrics']);
+        $this->assertNotEmpty($qualitySummary['history']);
+    }
+
+    public function testCompliancePacketAndMedicationReviewAffectEpisodeReadiness(): void
+    {
+        TableRegistry::getTableLocator()->get('PatientComplianceDocuments')->deleteAll(['patient_id' => 1]);
+        TableRegistry::getTableLocator()->get('PatientMedications')->deleteAll(['patient_id' => 1]);
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/referrals/1/convert', []);
+        $this->assertResponseSuccess();
+        $episodeId = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data']['id'];
+
+        $this->authorizeRequest();
+        $this->get('/api/v1/episodes/' . $episodeId . '/readiness');
+        $this->assertResponseOk();
+        $readiness = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $this->assertStringContainsString('Admission compliance packet is missing', implode(' | ', $readiness['blockers']));
+        $this->assertStringContainsString('Medication profile must be reviewed before admission readiness is complete.', implode(' | ', $readiness['blockers']));
+
+        foreach (['consent', 'hipaa_acknowledgement', 'patient_rights', 'advance_directive', 'emergency_preparedness_ack'] as $documentType) {
+            $this->authorizeRequest();
+            $this->post('/api/v1/patients/1/compliance-documents/add', [
+                'document_type' => $documentType,
+                'document_status' => 'signed',
+                'signed_at' => '2026-04-18 09:00:00',
+            ]);
+            $this->assertResponseCode(201);
+        }
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/patients/1/medications/add', [
+            'episode_id' => $episodeId,
+            'medication_name' => 'Furosemide',
+            'high_risk' => true,
+            'teaching_completed' => true,
+            'last_reconciled_at' => '2026-04-19 09:20:00',
+        ]);
+        $this->assertResponseCode(201);
+
+        $this->authorizeRequest();
+        $this->get('/api/v1/episodes/' . $episodeId . '/readiness');
+        $this->assertResponseOk();
+        $readiness = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $this->assertNotContains('Medication profile must be reviewed before admission readiness is complete.', $readiness['blockers']);
+    }
+
+    public function testHomeHealthGapCompletionResourcesSupportSurveyReadiness(): void
+    {
+        [$episodeId] = $this->createActivatedEpisode();
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/episodes/' . $episodeId . '/verbal-orders/add', [
+            'order_source' => 'Dr. Alexis Monroe',
+            'ordered_service' => 'Increase SN visits to 2w2 for medication teaching.',
+            'received_by' => 'Nina Clinician RN',
+            'received_at' => '2026-04-20 09:15:00',
+            'read_back_completed' => true,
+            'signature_due_at' => '2026-04-25 17:00:00',
+            'status' => 'pending_signature',
+            'order_note' => 'Verbal order recorded and sent for signature.',
+        ]);
+        $this->assertResponseCode(201);
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/episodes/' . $episodeId . '/incidents/add', [
+            'incident_type' => 'fall',
+            'severity' => 'high',
+            'occurred_at' => '2026-04-20 12:00:00',
+            'description' => 'Patient reported an unwitnessed fall without injury.',
+            'follow_up_owner' => 'QA Supervisor',
+            'qapi_linked' => true,
+            'status' => 'qapi_review',
+        ]);
+        $this->assertResponseCode(201);
+
+        $billingReadiness = (new HomeHealthWorkflowService())->evaluateBillingReadiness($episodeId);
+        $this->assertStringContainsString('Open verbal orders require physician signature follow-up', implode(' | ', $billingReadiness['blockers']));
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/billing/claim-transactions/add', [
+            'claim_id' => 1,
+            'transaction_type' => '837I',
+            'transaction_status' => 'created',
+            'transaction_reference' => '837I-DEMO-0001',
+            'payload_summary' => 'Demo institutional claim payload staged for clearinghouse submission.',
+        ]);
+        $this->assertResponseCode(201);
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/billing/remittance-postings/add', [
+            'claim_id' => 1,
+            'era_reference' => 'ERA-DEMO-0001',
+            'paid_amount' => 1200.00,
+            'adjustment_code' => 'CO45',
+            'adjustment_amount' => 35.00,
+            'posted_at' => '2026-04-30 10:00:00',
+            'posting_note' => 'Demo ERA posted for revenue-cycle review.',
+        ]);
+        $this->assertResponseCode(201);
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/admin/survey-readiness/capture', ['period_key' => 'demo']);
+        $this->assertResponseCode(201);
+        $summary = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
+        $this->assertArrayHasKey('category_scores', $summary);
+        $this->assertGreaterThanOrEqual(1, $summary['open_counts']['open_verbal_orders']);
+        $this->assertGreaterThanOrEqual(1, $summary['open_counts']['open_incidents']);
+    }
+
     private function authorizeRequest(): void
     {
         $this->configRequest([
@@ -1553,6 +1797,31 @@ class WorkflowControllerTest extends TestCase
         $this->post('/api/v1/referrals/1/convert', []);
         $episode = json_decode((string)$this->_response->getBody(), true, 512, JSON_THROW_ON_ERROR)['data'];
         $episodeId = $episode['id'];
+
+        foreach (['consent', 'hipaa_acknowledgement', 'patient_rights', 'advance_directive', 'emergency_preparedness_ack'] as $documentType) {
+            $this->authorizeRequest();
+            $this->post('/api/v1/patients/1/compliance-documents/add', [
+                'document_type' => $documentType,
+                'document_status' => 'signed',
+                'signed_at' => '2026-04-18 09:00:00',
+                'source_name' => 'SOC admission packet',
+            ]);
+            $this->assertResponseCode(201);
+        }
+
+        $this->authorizeRequest();
+        $this->post('/api/v1/patients/1/medications/add', [
+            'episode_id' => $episodeId,
+            'medication_name' => 'Furosemide',
+            'dosage' => '20 mg',
+            'frequency' => 'Daily',
+            'route' => 'Oral',
+            'high_risk' => true,
+            'teaching_completed' => true,
+            'last_reconciled_at' => '2026-04-19 09:20:00',
+            'change_note' => 'Medication profile reconciled at SOC.',
+        ]);
+        $this->assertResponseCode(201);
 
         $this->authorizeRequest();
         $this->post('/api/v1/assessments/add', [

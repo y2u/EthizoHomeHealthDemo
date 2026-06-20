@@ -70,6 +70,14 @@ return function (RouteBuilder $routes): void {
             $builder->get('/patients/{id}', ['controller' => 'Patients', 'action' => 'view'])->setPass(['id']);
             $builder->post('/patients/add', ['controller' => 'Patients', 'action' => 'add']);
             $builder->post('/patients/{id}/update', ['controller' => 'Patients', 'action' => 'update'])->setPass(['id']);
+            $builder->get('/patients/{id}/compliance-documents', ['controller' => 'PatientCompliance', 'action' => 'documents'])->setPass(['id']);
+            $builder->post('/patients/{id}/compliance-documents/add', ['controller' => 'PatientCompliance', 'action' => 'addDocument'])->setPass(['id']);
+            $builder->get('/patients/{id}/notices', ['controller' => 'PatientCompliance', 'action' => 'notices'])->setPass(['id']);
+            $builder->post('/patients/{id}/notices/add', ['controller' => 'PatientCompliance', 'action' => 'addNotice'])->setPass(['id']);
+            $builder->get('/patients/{id}/medications', ['controller' => 'PatientCompliance', 'action' => 'medications'])->setPass(['id']);
+            $builder->post('/patients/{id}/medications/add', ['controller' => 'PatientCompliance', 'action' => 'addMedication'])->setPass(['id']);
+            $builder->get('/patients/{id}/allergies', ['controller' => 'PatientCompliance', 'action' => 'allergies'])->setPass(['id']);
+            $builder->post('/patients/{id}/allergies/add', ['controller' => 'PatientCompliance', 'action' => 'addAllergy'])->setPass(['id']);
 
             $builder->get('/referrals', ['controller' => 'Referrals', 'action' => 'index']);
             $builder->post('/referrals/add', ['controller' => 'Referrals', 'action' => 'add']);
@@ -87,9 +95,30 @@ return function (RouteBuilder $routes): void {
             $builder->get('/episodes/{id}', ['controller' => 'Episodes', 'action' => 'view'])->setPass(['id']);
             $builder->get('/episodes/{id}/readiness', ['controller' => 'Episodes', 'action' => 'readiness'])->setPass(['id']);
             $builder->get('/episodes/{id}/review-summary', ['controller' => 'Episodes', 'action' => 'reviewSummary'])->setPass(['id']);
+            $builder->get('/episodes/{id}/insights', ['controller' => 'Episodes', 'action' => 'insights'])->setPass(['id']);
             $builder->get('/episodes/{id}/orders/draft', ['controller' => 'Episodes', 'action' => 'orderDraft'])->setPass(['id']);
             $builder->post('/episodes/{id}/admission/update', ['controller' => 'Episodes', 'action' => 'updateAdmission'])->setPass(['id']);
             $builder->post('/episodes/{id}/orders/add', ['controller' => 'Episodes', 'action' => 'addOrder'])->setPass(['id']);
+            $builder->post('/episodes/{id}/oasis-submissions/prepare', ['controller' => 'OasisSubmissions', 'action' => 'prepare'])->setPass(['id']);
+            $builder->post('/episodes/{id}/plan-of-care/generate', ['controller' => 'PlanOfCare', 'action' => 'generate'])->setPass(['id']);
+            $builder->post('/episodes/{id}/coder-review/sync', ['controller' => 'CoderReview', 'action' => 'sync'])->setPass(['id']);
+            $builder->post('/episodes/{id}/communication-log/add', ['controller' => 'CommunicationLog', 'action' => 'add'])->setPass(['id']);
+            $builder->get('/episodes/{id}/verbal-orders', ['controller' => 'EpisodeCompliance', 'action' => 'verbalOrders'])->setPass(['id']);
+            $builder->post('/episodes/{id}/verbal-orders/add', ['controller' => 'EpisodeCompliance', 'action' => 'addVerbalOrder'])->setPass(['id']);
+            $builder->get('/episodes/{id}/aide-supervision', ['controller' => 'EpisodeCompliance', 'action' => 'aideSupervision'])->setPass(['id']);
+            $builder->post('/episodes/{id}/aide-supervision/add', ['controller' => 'EpisodeCompliance', 'action' => 'addAideSupervision'])->setPass(['id']);
+            $builder->get('/episodes/{id}/incidents', ['controller' => 'EpisodeCompliance', 'action' => 'incidents'])->setPass(['id']);
+            $builder->post('/episodes/{id}/incidents/add', ['controller' => 'EpisodeCompliance', 'action' => 'addIncident'])->setPass(['id']);
+            $builder->get('/episodes/{id}/infections', ['controller' => 'EpisodeCompliance', 'action' => 'infections'])->setPass(['id']);
+            $builder->post('/episodes/{id}/infections/add', ['controller' => 'EpisodeCompliance', 'action' => 'addInfection'])->setPass(['id']);
+            $builder->get('/episodes/{id}/authorizations', ['controller' => 'EpisodeCompliance', 'action' => 'authorizations'])->setPass(['id']);
+            $builder->post('/episodes/{id}/authorizations/add', ['controller' => 'EpisodeCompliance', 'action' => 'addAuthorization'])->setPass(['id']);
+            $builder->get('/episodes/{id}/eligibility-checks', ['controller' => 'EpisodeCompliance', 'action' => 'eligibilityChecks'])->setPass(['id']);
+            $builder->post('/episodes/{id}/eligibility-checks/add', ['controller' => 'EpisodeCompliance', 'action' => 'addEligibilityCheck'])->setPass(['id']);
+            $builder->get('/episodes/{id}/dme-supply-orders', ['controller' => 'EpisodeCompliance', 'action' => 'dmeSupplyOrders'])->setPass(['id']);
+            $builder->post('/episodes/{id}/dme-supply-orders/add', ['controller' => 'EpisodeCompliance', 'action' => 'addDmeSupplyOrder'])->setPass(['id']);
+            $builder->get('/episodes/{id}/case-conferences', ['controller' => 'EpisodeCompliance', 'action' => 'caseConferences'])->setPass(['id']);
+            $builder->post('/episodes/{id}/case-conferences/add', ['controller' => 'EpisodeCompliance', 'action' => 'addCaseConference'])->setPass(['id']);
             $builder->post('/episodes/{id}/activate', ['controller' => 'Episodes', 'action' => 'activate'])->setPass(['id']);
             $builder->post('/episodes/{id}/transition', ['controller' => 'Episodes', 'action' => 'transition'])->setPass(['id']);
 
@@ -122,11 +151,40 @@ return function (RouteBuilder $routes): void {
             $builder->post('/claims/{id}/post-payment', ['controller' => 'Claims', 'action' => 'postPayment'])->setPass(['id']);
             $builder->post('/claims/{id}/void', ['controller' => 'Claims', 'action' => 'void'])->setPass(['id']);
             $builder->post('/claims/{id}/resubmit-corrected', ['controller' => 'Claims', 'action' => 'resubmitCorrected'])->setPass(['id']);
+            $builder->get('/billing/claim-transactions', ['controller' => 'BillingCompliance', 'action' => 'claimTransactions']);
+            $builder->post('/billing/claim-transactions/add', ['controller' => 'BillingCompliance', 'action' => 'addClaimTransaction']);
+            $builder->get('/billing/remittance-postings', ['controller' => 'BillingCompliance', 'action' => 'remittancePostings']);
+            $builder->post('/billing/remittance-postings/add', ['controller' => 'BillingCompliance', 'action' => 'addRemittancePosting']);
 
             $builder->get('/qa', ['controller' => 'Qa', 'action' => 'index']);
             $builder->post('/qa/{id}/assign', ['controller' => 'Qa', 'action' => 'assign'])->setPass(['id']);
             $builder->post('/qa/{id}/escalate', ['controller' => 'Qa', 'action' => 'escalate'])->setPass(['id']);
             $builder->post('/qa/{id}/resolve', ['controller' => 'Qa', 'action' => 'resolve'])->setPass(['id']);
+
+            $builder->get('/oasis-submissions', ['controller' => 'OasisSubmissions', 'action' => 'index']);
+            $builder->post('/oasis-submissions/{id}/update', ['controller' => 'OasisSubmissions', 'action' => 'update'])->setPass(['id']);
+
+            $builder->get('/plan-of-care', ['controller' => 'PlanOfCare', 'action' => 'index']);
+            $builder->post('/plan-of-care/{id}/update', ['controller' => 'PlanOfCare', 'action' => 'update'])->setPass(['id']);
+
+            $builder->get('/coder-review', ['controller' => 'CoderReview', 'action' => 'index']);
+            $builder->post('/coder-review/{id}/update', ['controller' => 'CoderReview', 'action' => 'update'])->setPass(['id']);
+
+            $builder->get('/communication-log', ['controller' => 'CommunicationLog', 'action' => 'index']);
+            $builder->post('/communication-log/{id}/update', ['controller' => 'CommunicationLog', 'action' => 'update'])->setPass(['id']);
+
+            $builder->get('/fax-inbox', ['controller' => 'FaxInbox', 'action' => 'index']);
+            $builder->post('/fax-inbox/add', ['controller' => 'FaxInbox', 'action' => 'add']);
+            $builder->post('/fax-inbox/{id}/route', ['controller' => 'FaxInbox', 'action' => 'route'])->setPass(['id']);
+
+            $builder->get('/qapi-projects', ['controller' => 'QapiProjects', 'action' => 'index']);
+            $builder->post('/qapi-projects/add', ['controller' => 'QapiProjects', 'action' => 'add']);
+            $builder->post('/qapi-projects/{id}/update', ['controller' => 'QapiProjects', 'action' => 'update'])->setPass(['id']);
+
+            $builder->get('/quality-metrics', ['controller' => 'QualityMetrics', 'action' => 'index']);
+            $builder->post('/quality-metrics/capture', ['controller' => 'QualityMetrics', 'action' => 'capture']);
+            $builder->get('/admin/survey-readiness', ['controller' => 'SurveyReadiness', 'action' => 'index']);
+            $builder->post('/admin/survey-readiness/capture', ['controller' => 'SurveyReadiness', 'action' => 'capture']);
         });
     });
 

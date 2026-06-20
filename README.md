@@ -5,7 +5,7 @@ Ethizo Home Health Care is a responsive home health operations platform built fo
 ## Stack
 
 - Frontend: `React`, `TypeScript`, `Vite`
-- Backend: `CakePHP 5`, `PHP 8.2+`
+- Backend: `CakePHP 5`, `PHP 8.4+`
 - Database: `MySQL` for app data, `SQLite` supported for test runs
 
 ## Current Product Coverage
