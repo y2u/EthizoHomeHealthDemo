@@ -3,6 +3,9 @@ import { expect, test } from 'playwright/test'
 test('demo release workflow exposes compliance, episode, billing, and survey readiness', async ({ page }) => {
   await page.goto('/')
 
+  await expect(page.getByRole('heading', { name: 'Sign in to Ethizo Home Health Care' })).toBeVisible()
+  await page.getByRole('button', { name: 'Continue in demo mode' }).click()
+
   await page.getByRole('button', { name: 'Patients' }).click()
   await expect(page.getByText('Patient Compliance Packet')).toBeVisible()
   await expect(page.getByText('Medication and Allergy Profile')).toBeVisible()
