@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/preserve-manual-memoization */
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import type { QaAssignmentDraft } from '../components/ui'
 import { api } from '../lib/api'
@@ -189,10 +190,16 @@ export function useEthizoAppController() {
   const [activeModule, setActiveModule] = useState<ModuleName>('Overview')
   const [dataset, setDataset] = useState<AppDataset>(EMPTY_DATASET)
   const [offlineQueue, setOfflineQueue] = useState<OfflineAction[]>(() => loadOfflineQueue())
-  const [statusMessage, setStatusMessage] = useState<string>('Loading workspace...')
+  const [statusMessage, setStatusMessage] = useState<string>('Please sign in to continue.')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [isBrowserOnline, setIsBrowserOnline] = useState(() => navigator.onLine)
   const [toastMessages, setToastMessages] = useState<ToastMessage[]>([])
+  const [loginForm, setLoginForm] = useState({
+    email: 'intake@harborhomehealth.test',
+    password: 'demo1234',
+  })
+  const [loginError, setLoginError] = useState('')
+  const [isAuthenticating, setIsAuthenticating] = useState(false)
   const [patientWizardStep, setPatientWizardStep] = useState<'identity' | 'coverage' | 'contacts'>('identity')
   const [referralWizardStep, setReferralWizardStep] = useState<'intake' | 'care_team' | 'service'>('intake')
   const [episodeWorkspaceTab, setEpisodeWorkspaceTab] = useState<'clinical' | 'admission' | 'review'>('clinical')
@@ -718,7 +725,7 @@ export function useEthizoAppController() {
     setStatusMessage(`Editing user access for ${userRecord.full_name}.`)
   }
 
-  const seedDemoWorkspace = useEffectEvent(() => {
+  function seedDemoWorkspace() {
     setUser({
       id: 1,
       full_name: 'Marina Intake',
@@ -741,31 +748,42 @@ export function useEthizoAppController() {
       syncEpisodeAdmissionForm(firstEpisode)
     }
     setStatusMessage('Demo mode enabled. Start modeling your workflows immediately.')
-  })
+  }
 
-  const initializeApiSession = useEffectEvent(async (authToken: string, authUser: User) => {
+  async function initializeApiSession(authToken: string, authUser: User) {
     await hydrateFromApi(authToken, authUser)
     setStatusMessage('Connected to CakePHP API.')
-  })
+  }
 
-  useEffect(() => {
-    void (async () => {
-      try {
-        const response = await api.login('intake@harborhomehealth.test', 'demo1234')
-        if (response.token && response.user) {
-          setToken(response.token)
-          setUser(response.user)
-          setMode('api')
-          await initializeApiSession(response.token, response.user)
-          return
-        }
-      } catch {
-        setMode('demo')
+  function enterDemoMode() {
+    setToken('')
+    setMode('demo')
+    setLoginError('')
+    seedDemoWorkspace()
+  }
+
+  async function signIn() {
+    setIsAuthenticating(true)
+    setLoginError('')
+
+    try {
+      const response = await api.login(loginForm.email.trim(), loginForm.password)
+      if (!response.token || !response.user) {
+        throw new Error('Login did not return a valid session.')
       }
 
-      seedDemoWorkspace()
-    })()
-  }, [])
+      setToken(response.token)
+      setUser(response.user)
+      setMode('api')
+      await initializeApiSession(response.token, response.user)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to sign in.'
+      setLoginError(message)
+      setStatusMessage(message)
+    } finally {
+      setIsAuthenticating(false)
+    }
+  }
 
   useEffect(() => {
     const handleOnline = () => setIsBrowserOnline(true)
@@ -5052,6 +5070,13 @@ export function useEthizoAppController() {
     setIsBrowserOnline,
     toastMessages,
     setToastMessages,
+    loginForm,
+    setLoginForm,
+    loginError,
+    setLoginError,
+    isAuthenticating,
+    signIn,
+    enterDemoMode,
     patientWizardStep,
     setPatientWizardStep,
     referralWizardStep,

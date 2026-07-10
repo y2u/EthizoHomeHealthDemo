@@ -30,7 +30,89 @@ function App() {
     connectionLightLabel,
     syncLightLabel,
     nameForPatient,
+    loginForm,
+    setLoginForm,
+    loginError,
+    isAuthenticating,
+    signIn,
+    enterDemoMode,
   } = controller
+
+  if (!user) {
+    return (
+      <main className="login-shell">
+        <section className="login-hero-panel">
+          <p className="eyebrow">Ethizo Home Health Care</p>
+          <h1>Sign in to Ethizo Home Health Care</h1>
+          <p>
+            Access the home health workspace for intake, clinical documentation, QA, billing, EVV, and survey-readiness workflows.
+          </p>
+          <div className="login-proof-grid">
+            <div className="login-proof-card">
+              <span>Workflow coverage</span>
+              <strong>Intake to Billing</strong>
+            </div>
+            <div className="login-proof-card">
+              <span>Field ready</span>
+              <strong>Tablet + Mobile</strong>
+            </div>
+            <div className="login-proof-card">
+              <span>Demo account</span>
+              <strong>Included</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="login-card" aria-labelledby="login-heading">
+          <div>
+            <p className="eyebrow">Secure access</p>
+            <h2 id="login-heading">Agency sign in</h2>
+            <p className="login-support">Use the seeded demo account below or continue in demo mode without the API.</p>
+          </div>
+
+          <form
+            className="login-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              void signIn()
+            }}
+          >
+            <label>
+              Email
+              <input
+                autoComplete="username"
+                value={loginForm.email}
+                onChange={(event) => setLoginForm((current) => ({ ...current, email: event.target.value }))}
+              />
+            </label>
+            <label>
+              Password
+              <input
+                autoComplete="current-password"
+                type="password"
+                value={loginForm.password}
+                onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
+              />
+            </label>
+
+            {loginError ? <p className="login-error" role="alert">{loginError}</p> : null}
+
+            <button className="primary-button" type="submit" disabled={isAuthenticating}>
+              {isAuthenticating ? 'Signing in...' : 'Sign in'}
+            </button>
+            <button className="secondary-button" type="button" onClick={() => enterDemoMode()}>
+              Continue in demo mode
+            </button>
+          </form>
+
+          <div className="login-demo-note">
+            <strong>Demo login</strong>
+            <span>intake@harborhomehealth.test / demo1234</span>
+          </div>
+        </section>
+      </main>
+    )
+  }
 
   return (
     <div className={sidebarCollapsed ? 'app-shell sidebar-collapsed' : 'app-shell'}>
